@@ -3,3 +3,4 @@ Flask>=3.0.0
 NetworkX>=3.0
 pandas>=2.0
 requests>=2.31.0
+scipy>=1.10
