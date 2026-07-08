@@ -18,3 +18,4 @@ env/
 # Local switch inventory files (may contain real IPs/SNMP community strings)
 switches.txt
 switch_list.txt
+*.csv
