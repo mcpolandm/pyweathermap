@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{{ title }}</title>
+  <meta http-equiv="refresh" content="{{ interval }}">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #1a1a2e;
+      color: #eee;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      background: #16213e;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #0f3460;
+    }
+    header h1 { font-size: 1.2rem; color: #e94560; }
+    header .meta { font-size: 0.8rem; color: #888; }
+    .map-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .image-frame {
+      position: relative;
+      display: inline-block;
+      max-width: 100%;
+    }
+    .image-frame img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      border: 1px solid #0f3460;
+      border-radius: 4px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    }
+    .node-link {
+      position: absolute;
+      display: block;
+    }
+    footer {
+      background: #16213e;
+      padding: 8px 20px;
+      font-size: 0.75rem;
+      color: #555;
+      border-top: 1px solid #0f3460;
+      display: flex;
+      justify-content: space-between;
+    }
+    .dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #2ecc71;
+      margin-right: 6px;
+      animation: pulse 2s infinite;
+    }
+    .home-link {
+      color: #e94560;
+      text-decoration: none;
+    }
+    .home-link:hover {
+      text-decoration: underline;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="home-link">← Home</a>
+    <h1>{{ title or "Network Weathermap" }}</h1>
+    <span class="meta"><span class="dot"></span>Auto-refreshes every {{ interval }}s</span>
+  </header>
+  <div class="map-wrap">
+    <div class="image-frame">
+      <img src="/map/{{ canonical_name }}/map.png?t={{ ts }}" alt="Network Weathermap">
+      {% for name, x1, y1, x2, y2, url in areas %}
+      <a class="node-link"
+         style="left:{{ (x1 / map_width * 100) }}%; top:{{ (y1 / map_height * 100) }}%; width:{{ ((x2 - x1) / map_width * 100) }}%; height:{{ ((y2 - y1) / map_height * 100) }}%;"
+         href="{{ url }}" target="_self" title="{{ name }}"></a>
+      {% endfor %}
+    </div>
+  </div>
+  <footer>
+    <span>{{ nodes }} nodes &nbsp;·&nbsp; {{ links }} links</span>
+    <span>Last Updated: {{ last_updated }}</span>
+    <span>pyweathermap</span>
+  </footer>
+  {% include "toast.html" %}
+</body>
+</html>

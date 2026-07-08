@@ -1,0 +1,39 @@
+<style>
+  .toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 9999; }
+  .toast { background: #16213e; border: 1px solid #0f3460; border-radius: 6px; padding: 10px 16px; color: #eee; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 0.85rem; box-shadow: 0 4px 16px rgba(0,0,0,0.5); animation: toast-fade 4s ease forwards; }
+  .toast a { color: #e94560; font-weight: 600; text-decoration: none; }
+  .toast a:hover { text-decoration: underline; }
+  @keyframes toast-fade {
+    0% { opacity: 0; transform: translateY(10px); }
+    10% { opacity: 1; transform: translateY(0); }
+    85% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+</style>
+<div class="toast-container" id="toast-container"></div>
+<script>
+(function() {
+  let since = parseFloat(localStorage.getItem("noticesSince") || "0");
+
+  function poll() {
+    fetch("/notices?since=" + since)
+      .then(r => r.text())
+      .then(html => {
+        if (!html) return;
+        const container = document.getElementById("toast-container");
+        container.insertAdjacentHTML("beforeend", html);
+        container.querySelectorAll(".toast:not([data-scheduled])").forEach(el => {
+          el.dataset.scheduled = "1";
+          const ts = parseFloat(el.dataset.ts);
+          if (ts > since) since = ts;
+          setTimeout(() => el.remove(), 4000);
+        });
+        localStorage.setItem("noticesSince", since);
+      })
+      .catch(() => {});
+  }
+
+  poll();
+  setInterval(poll, 5000);
+})();
+</script>

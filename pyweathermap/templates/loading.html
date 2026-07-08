@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Building map…</title>
+  <meta http-equiv="refresh" content="4">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #1a1a2e;
+      color: #eee;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .card { text-align: center; }
+    .dot {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #e94560;
+      margin-right: 8px;
+      animation: pulse 1s infinite;
+    }
+    .home-link {
+      color: #e94560;
+      text-decoration: none;
+    }
+    .home-link:hover {
+      text-decoration: underline;
+    }
+
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  </style>
+</head>
+<body>
+  <a href="/" class="home-link">← Home</a>
+  <div class="card">
+    <p><span class="dot"></span>Building weathermap for {{ name }}…</p>
+    <p style="font-size:0.85rem;color:#888;margin-top:8px;">
+      Sampling live traffic — this page refreshes automatically.
+    </p>
+  </div>
+  {% include "toast.html" %}
+</body>
+</html>
