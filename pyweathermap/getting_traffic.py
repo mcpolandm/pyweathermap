@@ -12,12 +12,12 @@ from .models import (
 _OID_IN = ".1.3.6.1.2.1.31.1.1.1.6"      # ifHCInOctets
 _OID_OUT = ".1.3.6.1.2.1.31.1.1.1.10"    # ifHCOutOctets
 _OID_SPEED = ".1.3.6.1.2.1.31.1.1.1.15"  # ifHighSpeed
-_RE_COUNTER = r"IF-MIB::\w+\.([0-9]+) = (?:Counter64|Gauge32): ([0-9]+)"
+_RE_COUNTER = r"\.([0-9]+) = (?:Counter64|Gauge32): ([0-9]+)"
 
 # Bulk-walks a whole IF-MIB table in one snmpbulkwalk call.
 # Returns {ifIndex: value} for every interface.
 def snmp_bulk_table(ip, community, oid):
-    output = subprocess.run(["snmpbulkwalk", "-v2c", "-c", community, ip, oid], capture_output=True, text=True).stdout
+    output = subprocess.run(["snmpbulkwalk", '-On', "-v2c", "-c", community, ip, oid], capture_output=True, text=True).stdout
     table = {}
     for line in output.strip().split("\n"):
         match = re.match(_RE_COUNTER, line.strip())
@@ -62,16 +62,16 @@ def sample_all_links(wm: WeatherMap):
 # Uses LLDP port IDs to collect remote hostnames to save as Node names.
 def get_lldp_neighbors(ip, community, df):
     # Collecting and matching interface names to get LLDP port IDs
-    regex_loc_port = r'iso\.0\.8802\.1\.1\.2\.1\.3\.7\.1\.3\.([0-9]*) = STRING: "?([/\(\)A-Za-z0-9-\.:]*)"?'
-    output_remote = subprocess.run(['snmpbulkwalk', '-v2c', '-c', community, ip, ".1.0.8802.1.1.2.1.3.7.1.3"], capture_output=True, text=True).stdout
+    regex_loc_port = r'\.1\.0\.8802\.1\.1\.2\.1\.3\.7\.1\.3\.([0-9]*) = STRING: "?([/\(\)A-Za-z0-9-\.:]*)"?'
+    output_remote = subprocess.run(['snmpbulkwalk', '-On', '-v2c', '-c', community, ip, ".1.0.8802.1.1.2.1.3.7.1.3"], capture_output=True, text=True).stdout
     for line in output_remote.strip().split("\n"):
         match = re.match(regex_loc_port, line.strip())
         if match:
             df.loc[df['interface'] == match.group(2), "LLDP Port"] = match.group(1)
 
     # Collecting remote hostnames to match to LLDP port IDs
-    regex_remote_hostname = r'iso\.0\.8802\.1\.1\.2\.1\.4\.1\.1\.9\.[0-9]*\.([0-9]*)\.[0-9]* = STRING: "?([\(\)A-Za-z0-9-\.:]*)"?'
-    output_remote = subprocess.run(['snmpbulkwalk', '-v2c', '-c', community, ip, ".1.0.8802.1.1.2.1.4.1.1.9"], capture_output=True, text=True).stdout
+    regex_remote_hostname = r'\.1\.0\.8802\.1\.1\.2\.1\.4\.1\.1\.9\.[0-9]*\.([0-9]*)\.[0-9]* = STRING: "?([\(\)A-Za-z0-9-\.:]*)"?'
+    output_remote = subprocess.run(['snmpbulkwalk', '-On', '-v2c', '-c', community, ip, ".1.0.8802.1.1.2.1.4.1.1.9"], capture_output=True, text=True).stdout
     for line in output_remote.strip().split("\n"):
         match = re.match(regex_remote_hostname, line.strip())
         if match:
@@ -83,8 +83,8 @@ def get_lldp_neighbors(ip, community, df):
 # Computes traffic by waiting for seconds between snmpget commands, then calculating difference.
 def get_traffic(ip, community, seconds=300, interfaces=None):
     # Collect IF-MIB index and interfaces for future snmp commands
-    regex_descr = r"IF-MIB::ifDescr\.([0-9]*) = STRING: ([A-Za-z0-9/\.:_-]*)"
-    output = subprocess.run(["snmpbulkwalk", "-v2c", "-c", community, ip, "IF-MIB::ifDescr"], capture_output=True, text=True).stdout
+    regex_descr = r"\.([0-9]*) = STRING: ([A-Za-z0-9/\.:_-]*)"
+    output = subprocess.run(["snmpbulkwalk", '-On', "-v2c", "-c", community, ip, ".1.3.6.1.2.1.2.2.1.2"], capture_output=True, text=True).stdout
     temp = []
     for line in output.strip().split("\n"):
         match = re.match(regex_descr, line.strip())
