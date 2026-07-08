@@ -1,5 +1,6 @@
 import pyweathermap.getting_traffic as datasource
 import pyweathermap.layout as layout
+import pyweathermap.librenms_integration as libre
 from concurrent.futures import ThreadPoolExecutor
 from .models import (
     WeatherMap, MapNode, MapLink
@@ -51,7 +52,8 @@ def config_from_snmp(registry, switches):
 
     # Add switch MapNode and call create_nodes_and_links to add information from DataFrame to WeatherMap
     for switch, df in zip(switches, dataframes):
-        node = MapNode(name=switch.name, label=switch.name, node_type="switch", ip=switch.ip, community=switch.community, icon_type="rbox", icon_height=30, icon_width=60)
+        infourl = libre.get_device_url(switch.ip)
+        node = MapNode(name=switch.name, label=switch.name, node_type="switch", ip=switch.ip, community=switch.community, icon_type="rbox", icon_height=30, icon_width=60, infourl=infourl)
         wm.nodes[switch.name] = node
         create_nodes_and_links(wm, df, switch, registry, switches)
 

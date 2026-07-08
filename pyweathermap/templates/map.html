@@ -90,7 +90,9 @@
       {% for name, x1, y1, x2, y2, url in areas %}
       <a class="node-link"
          style="left:{{ (x1 / map_width * 100) }}%; top:{{ (y1 / map_height * 100) }}%; width:{{ ((x2 - x1) / map_width * 100) }}%; height:{{ ((y2 - y1) / map_height * 100) }}%;"
-         href="{{ url }}" target="_self" title="{{ name }}"></a>
+         href="{{ url }}"
+         {% if url.startswith('/') %}target="_self"{% else %}target="_blank" rel="noopener noreferrer"{% endif %}
+         title="{{ name }}"></a>
       {% endfor %}
     </div>
   </div>

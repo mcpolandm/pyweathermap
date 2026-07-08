@@ -20,6 +20,12 @@ export PYWEATHERMAP_DEFAULT_CENTER=switch1,switch2
 # Switch information text file:
 export PYWEATHERMAP_SWITCHES=/path/to/switches.txt
 
+# Optional: Add integration to LibreNMS
+# LibreNMS URL:
+export LIBRENMS_URL=https://librenms.link.org
+# LibreNMS API Key:
+export LIBRENMS_API_KEY=apikeygoeshere
+
 # Render default nodes to a PNG
 python main.py
 
@@ -90,6 +96,7 @@ pyweathermap/
     ├── config.py               Creates WeatherMap objects from switch registry
     ├── getting_traffic.py      Collects collection details for one switch
     ├── layout.py               Uses NetworkX library to determine Node positions
+    ├── librenms_integration.py Creates links to LibreNMS page in WeatherMap if API information is configured 
     ├── map_server_manager.py   Processes new WeatherMap creation for live server
     ├── models.py               Dataclasses: WeatherMap, MapNode, MapLink, MapScale, Color, default_scale
     ├── renderer.py             Pillow-based image renderer (layered RGBA + 2× supersampling)
