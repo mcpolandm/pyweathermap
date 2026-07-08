@@ -1,0 +1,2 @@
+#IP NAME COMMUNITY FILE GROUP
+0.0.0.0 Core-Switch snmp NONE
