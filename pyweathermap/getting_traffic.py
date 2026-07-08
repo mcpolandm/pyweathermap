@@ -12,7 +12,7 @@ from .models import (
 _OID_IN = ".1.3.6.1.2.1.31.1.1.1.6"      # ifHCInOctets
 _OID_OUT = ".1.3.6.1.2.1.31.1.1.1.10"    # ifHCOutOctets
 _OID_SPEED = ".1.3.6.1.2.1.31.1.1.1.15"  # ifHighSpeed
-_RE_COUNTER = r"\.([0-9]+) = (?:Counter64|Gauge32): ([0-9]+)"
+_RE_COUNTER = r"\.(?:[0-9]+\.)+([0-9]+) = (?:Counter64|Gauge32): ([0-9]+)"
 
 # Bulk-walks a whole IF-MIB table in one snmpbulkwalk call.
 # Returns {ifIndex: value} for every interface.
@@ -83,7 +83,7 @@ def get_lldp_neighbors(ip, community, df):
 # Computes traffic by waiting for seconds between snmpget commands, then calculating difference.
 def get_traffic(ip, community, seconds=300, interfaces=None):
     # Collect IF-MIB index and interfaces for future snmp commands
-    regex_descr = r"\.([0-9]*) = STRING: ([A-Za-z0-9/\.:_-]*)"
+    regex_descr = r"\.1\.3\.6\.1\.2\.1\.2\.2\.1\.2\.([0-9]*) = STRING: \"/([A-Za-z0-9/\.:_-]*)\"?"
     output = subprocess.run(["snmpbulkwalk", '-On', "-v2c", "-c", community, ip, ".1.3.6.1.2.1.2.2.1.2"], capture_output=True, text=True).stdout
     temp = []
     for line in output.strip().split("\n"):
@@ -103,7 +103,7 @@ def get_traffic(ip, community, seconds=300, interfaces=None):
         df_csv = pd.read_csv(interfaces)
         df = pd.merge(df, df_csv, on='interface', how='inner')
     else:
-        output_remote = subprocess.run(['snmpbulkwalk', '-v2c', '-c', community, ip, ".1.0.8802.1.1.2.1.3.7.1.3"], capture_output=True, text=True).stdout
+        output_remote = subprocess.run(['snmpbulkwalk', '-On', '-v2c', '-c', community, ip, ".1.0.8802.1.1.2.1.3.7.1.3"], capture_output=True, text=True).stdout
         if len(output_remote) == 0 or "at this OID" in output_remote:
             df["sysname"] = df["interface"]
         else:
