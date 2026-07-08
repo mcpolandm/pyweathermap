@@ -84,6 +84,7 @@ INDEX_TEMPLATE = """<!DOCTYPE html>
       cursor: pointer;
     }
     button:hover { background: #d63a52; }
+    {{ toast_style|safe }}
   </style>
 </head>
 <body>
@@ -115,6 +116,7 @@ INDEX_TEMPLATE = """<!DOCTYPE html>
 </script>
 
   </div>
+  {{ toast_script|safe }}
 </body>
 </html>
 """
@@ -198,6 +200,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       0%,100% { opacity: 1; }
       50% { opacity: 0.3; }
     }
+    {{ toast_style|safe }}
   </style>
 </head>
 <body>
@@ -221,6 +224,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <span>Last Updated: {{ last_updated }}</span>
     <span>pyweathermap</span>
   </footer>
+  {{ toast_script|safe }}
 </body>
 </html>
 """
@@ -261,6 +265,7 @@ LOADING_TEMPLATE = """<!DOCTYPE html>
     }
 
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    {{ toast_style|safe }}
   </style>
 </head>
 <body>
@@ -271,6 +276,7 @@ LOADING_TEMPLATE = """<!DOCTYPE html>
       Sampling live traffic — this page refreshes automatically.
     </p>
   </div>
+  {{ toast_script|safe }}
 </body>
 </html>
 """
@@ -286,6 +292,72 @@ ERROR_TEMPLATE = """<!DOCTYPE html>
 </html>
 """
 
+TOAST_STYLE = """
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 9999;
+    }
+    .toast {
+      background: #16213e;
+      border: 1px solid #0f3460;
+      border-radius: 6px;
+      padding: 10px 16px;
+      color: #eee;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 0.85rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      animation: toast-fade 4s ease forwards;
+    }
+    .toast a {
+      color: #e94560;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .toast a:hover { text-decoration: underline; }
+    @keyframes toast-fade {
+      0% { opacity: 0; transform: translateY(10px); }
+      10% { opacity: 1; transform: translateY(0); }
+      85% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+"""
+
+TOAST_SCRIPT = """
+<div class="toast-container" id="toast-container"></div>
+<script>
+(function() {
+  let since = parseFloat(localStorage.getItem("noticesSince") || "0");
+
+  function poll() {
+    fetch("/notices?since=" + since)
+      .then(r => r.text())
+      .then(html => {
+        if (!html) return;
+        const container = document.getElementById("toast-container");
+        container.insertAdjacentHTML("beforeend", html);
+        container.querySelectorAll(".toast:not([data-scheduled])").forEach(el => {
+          el.dataset.scheduled = "1";
+          const ts = parseFloat(el.dataset.ts);
+          if (ts > since) since = ts;
+          setTimeout(() => el.remove(), 4000);
+        });
+        localStorage.setItem("noticesSince", since);
+      })
+      .catch(() => {});
+  }
+
+  poll();
+  setInterval(poll, 5000);
+})();
+</script>
+"""
+
+
 # Primary creation and operation function called by run_server.
 # Creates Flask app with lazily-built, per-group maps.
 # Defines /, /map/<name>, and /map/<name>/map.png routes.
@@ -296,11 +368,13 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
     app.config["INTERVAL"] = refresh_interval
     app.config["MAPS"] = {}             # group_id -> map entry (see _new_map_entry)
     app.config["MAPS_LOCK"] = threading.Lock()  # guards creation of new MAPS entries
+    app.config["NOTICES"] = [] # list of notices about completed WeatherMaps
+    app.config["NOTICES_LOCK"] = threading.Lock()
 
     @app.route("/")
     def root():
         switches = get_all_switches(registry)
-        return render_template_string(INDEX_TEMPLATE, switches=switches)
+        return render_template_string(INDEX_TEMPLATE, switches=switches, toast_style=TOAST_STYLE, toast_script=TOAST_SCRIPT)
     
     @app.route("/goto")
     def goto():
@@ -323,7 +397,7 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
             error = entry["error"]
 
         if status == "loading":
-            return render_template_string(LOADING_TEMPLATE, name=name)
+            return render_template_string(LOADING_TEMPLATE, name=name, toast_style=TOAST_STYLE, toast_script=TOAST_SCRIPT)
         if status == "error":
             return render_template_string(ERROR_TEMPLATE, name=name, error=error), 500
 
@@ -339,7 +413,9 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
             map_width=m.width,
             map_height=m.height,
             canonical_name=canonical_name,
-            last_updated=datetime.fromtimestamp(last_updated).strftime("%Y-%m-%d %H:%M:%S"),
+            last_updated=datetime.fromtimestamp(last_updated).strftime("%Y-%m-%d %H:%M:%S"), 
+            toast_style=TOAST_STYLE, 
+            toast_script=TOAST_SCRIPT,
         )
 
     # Defines route to display a given switch/group's rendered image.
@@ -351,6 +427,17 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
                 abort(404)
             data = entry["png"]
         return Response(data, mimetype="image/png")
+    
+    @app.route("/notices")
+    def notices():
+        since = request.args.get("since", 0.0, type=float)
+        with app.config["NOTICES_LOCK"]:
+            cutoff = time.time() - 60
+            app.config["NOTICES"] = [n for n in app.config["NOTICES"] if n["ts"] > cutoff]
+            recent = [n for n in app.config["NOTICES"] if n["ts"] > since]
+        return "".join(f'<div class="toast" data-ts="{n["ts"]}">'
+            f'Weathermap for <a href="{n["url"]}">{n["name"]}</a> is ready</div>'
+            for n in recent)
 
     return app
 

@@ -24,6 +24,12 @@ def build(app, registry, group_id, switches, traffic_interval):
             entry["png"] = png
             entry["updated"] = time.time()
             entry["status"] = "ready"
+        with app.config["NOTICES_LOCK"]:
+            app.config["NOTICES"].append({
+                "name": switches[0].name,
+                "url": f"/map/{group_id}",
+                "ts": time.time(),
+            })
         threading.Thread(target=traffic_update_loop, args=(app, group_id, traffic_interval), daemon=True).start()
     except Exception as exc:
         with entry["lock"]:
