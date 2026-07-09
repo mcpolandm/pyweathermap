@@ -35,9 +35,7 @@ def create_nodes_and_links(wm, df, switch, registry, switches):
 # Primary function called by main.py to initialize WeatherMap object and collect startup data.
 # Collects switch information from a local file, and threads execution of get_traffic for each switch.
 # Builds WeatherMap from switch DataFrames and calls auto_layout to set Node positions.
-def config_from_snmp(registry, switches):
-    seconds = 60
-
+def config_from_snmp(registry, switches, seconds=60):
     # Helper function to call get_traffic with remote hostname file if listed in the switches file
     def get_traffic_for_switch(sw):
         if sw.file != "NONE":

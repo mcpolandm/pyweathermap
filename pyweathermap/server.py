@@ -24,7 +24,7 @@ from pyweathermap.switch_registration import get_all_switches
 # Primary creation and operation function called by run_server.
 # Creates Flask app with lazily-built, per-group maps.
 # Defines /, /map/<name>, and /map/<name>/map.png routes.
-def create_app(registry, default_center=None, refresh_interval: int = 60, traffic_interval: int = 300) -> Flask:
+def create_app(registry, default_center=None, refresh_interval: int = 60, traffic_interval: int = 300, startup: int = 60) -> Flask:
     app = Flask(__name__)
     app.config["REGISTRY"] = registry
     app.config["DEFAULT_CENTER"] = default_center
@@ -50,7 +50,7 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
     @app.route("/map/<name>")
     def show_map(name):
         _, canonical_name, _ = manager.resolve(app.config["REGISTRY"], name)
-        group_id, entry = manager.get_or_create_map(app, app.config["REGISTRY"], name, traffic_interval)
+        group_id, entry = manager.get_or_create_map(app, app.config["REGISTRY"], name, traffic_interval, startup)
 
         with entry["lock"]:
             status = entry["status"]
@@ -82,7 +82,7 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
     # Defines route to display a given switch/group's rendered image.
     @app.route("/map/<name>/map.png")
     def map_png(name):
-        _, entry = manager.get_or_create_map(app, app.config["REGISTRY"], name, traffic_interval)
+        _, entry = manager.get_or_create_map(app, app.config["REGISTRY"], name, traffic_interval, startup)
         with entry["lock"]:
             if entry["status"] != "ready":
                 abort(404)
@@ -112,8 +112,9 @@ def run_server(
     port: int = 8888,
     refresh_interval: int = 60,
     traffic_interval: int = 300,
+    startup: int = 60,
     debug: bool = False,
 ):
-    app = create_app(registry, default_center, refresh_interval, traffic_interval)
+    app = create_app(registry, default_center, refresh_interval, traffic_interval, startup)
     print(f"  Weathermap server: http://{host}:{port}/")
     app.run(host=host, port=port, debug=debug, use_reloader=False)

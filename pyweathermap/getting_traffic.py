@@ -83,7 +83,7 @@ def get_lldp_neighbors(ip, community, df):
 # Computes traffic by waiting for seconds between snmpget commands, then calculating difference.
 def get_traffic(ip, community, seconds=300, interfaces=None):
     # Collect IF-MIB index and interfaces for future snmp commands
-    regex_descr = r"\.1\.3\.6\.1\.2\.1\.2\.2\.1\.2\.([0-9]*) = STRING: \"([A-Za-z0-9/\.:_-]*)\"?"
+    regex_descr = r"\.1\.3\.6\.1\.2\.1\.2\.2\.1\.2\.([0-9]*) = STRING: \"?([A-Za-z0-9/\.:_-]*)\"?"
     output = subprocess.run(["snmpbulkwalk", '-On', "-v2c", "-c", community, ip, ".1.3.6.1.2.1.2.2.1.2"], capture_output=True, text=True).stdout
     temp = []
     for line in output.strip().split("\n"):
