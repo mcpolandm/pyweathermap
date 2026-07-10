@@ -36,7 +36,7 @@ python main.py --center switch3
 python main.py --serve
 
 # Render to a specific name PNG
-python3 main.py --output examples/image.png
+python3 main.py --output inventory/image.png
 ```
 
 ---
@@ -45,7 +45,7 @@ python3 main.py --output examples/image.png
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--output`, `-o` | `examples/Network Map {node name}.png` | Override the PNG output path |
+| `--output`, `-o` | `inventory/Network Map {node name}.png` | Override the PNG output path |
 | `--server`, `-s` | off | Start the web server |
 | `--host` | `127.0.0.1` | Web server bind address |
 | `--port`, `-p` | `8888` | Web server port |
@@ -87,9 +87,10 @@ Each map is produced as a layered RGBA image rendered at 2× resolution and down
 
 ```
 pyweathermap/
+├── Containerfile               Example Containerfile for this repo
 ├── main.py                     CLI entry point
 ├── requirements.txt            Project dependencies
-├── examples/
+├── inventory/
 │   ├── simple.txt              Example switch file (One switch)
 │   └── simple.png              Example output (7 nodes, 7 links)
 └── pyweathermap/

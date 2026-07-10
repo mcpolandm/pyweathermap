@@ -62,9 +62,9 @@ def main():
             img = renderer.render()
             img.save(out_path)
             print(f"  Saved: {out_path}")
-        # If no path and not server, save to default path (examples/WeatherMap title)
+        # If no path and not server, save to default path (inventory/WeatherMap title)
         else:
-            out_path = "examples/" + wmap.title + ".png"
+            out_path = "inventory/" + wmap.title + ".png"
             print(f"  Rendering image → {out_path}")
             renderer = MapRenderer(wmap)
             img = renderer.render()
