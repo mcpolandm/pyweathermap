@@ -72,6 +72,23 @@
     .home-link:hover {
       text-decoration: underline;
     }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .download-link {
+      color: #eee;
+      text-decoration: none;
+      border: 1px solid #0f3460;
+      background: #0f3460;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+    .download-link:hover {
+      background: #16324f;
+    }
     @keyframes pulse {
       0%,100% { opacity: 1; }
       50% { opacity: 0.3; }
@@ -83,6 +100,7 @@
     <a href="/" class="home-link">← Home</a>
     <h1>{{ title or "Network Weathermap" }}</h1>
     <span class="meta"><span class="dot"></span>Auto-refreshes every {{ interval }}s</span>
+    <a class="download-link" href="/map/{{ canonical_name }}/map.png" download="{{ canonical_name }}-weathermap.png">Download PNG</a>
   </header>
   <div class="map-wrap">
     <div class="image-frame">
