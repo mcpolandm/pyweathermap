@@ -239,9 +239,9 @@ class MapRenderer:
             if not link.out_box or not link.in_box:
                 continue
             x1, y1, x2, y2 = link.out_box
-            areas.append({"x1": x1, "y1": y1, "x2": x2, "y2": y2, "iface_from": link.iface1, "iface_to": link.iface2, "bandwidth": format_bandwidth(link.bandwidth), "pct": round(link.out_bps/link.bandwidth*100, 1)})
+            areas.append({"x1": x1, "y1": y1, "x2": x2, "y2": y2, "from": link.node1, "to": link.node2, "iface_from": link.iface1, "iface_to": link.iface2, "bandwidth": format_bandwidth(link.bandwidth), "pct": round(link.out_bps/link.bandwidth*100, 1)})
             x1, y1, x2, y2 = link.in_box
-            areas.append({"x1": x1, "y1": y1, "x2": x2, "y2": y2, "iface_from": link.iface2, "iface_to": link.iface1, "bandwidth": format_bandwidth(link.bandwidth), "pct": round(link.in_bps/link.bandwidth*100, 1)})
+            areas.append({"x1": x1, "y1": y1, "x2": x2, "y2": y2, "from": link.node2, "to": link.node1, "iface_from": link.iface2, "iface_to": link.iface1, "bandwidth": format_bandwidth(link.bandwidth), "pct": round(link.in_bps/link.bandwidth*100, 1)})
         
         return areas
 

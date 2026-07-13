@@ -128,8 +128,10 @@
       {% for a in l_areas %}
       <div class="link-hotspot"
         style="left:{{ (a.x1 / map_width * 100) }}%; top:{{ (a.y1 / map_height * 100) }}%; width:{{ ((a.x2 - a.x1) / map_width * 100) }}%; height:{{ ((a.y2 - a.y1) / map_height * 100) }}%;"
-        data-from="{{ a.iface_from or '?' }}"
-        data-to="{{ a.iface_to or '?' }}"
+        data-fromi="{{ a.iface_from or '?' }}"
+        data-toi="{{ a.iface_to or '?' }}"
+        data-from="{{ a.from }}"
+        data-to="{{ a.to }}"
         data-bandwidth="{{ a.bandwidth }}"
         data-pct="{{ a.pct }}"></div>
       {% endfor %}
@@ -148,7 +150,7 @@
     document.querySelectorAll('.link-hotspot').forEach(el => {
       el.addEventListener('mouseenter', () => {
         tip.innerHTML =
-          `${el.dataset.from} &rarr; ${el.dataset.to}<br>` +
+          `${el.dataset.from} &rarr; ${el.dataset.to}<br>` + `${el.dataset.fromi} &rarr; ${el.dataset.toi}<br>` +
           `${el.dataset.bandwidth} total &middot; ${el.dataset.pct}% used`;
         tip.classList.add('visible');
       });
