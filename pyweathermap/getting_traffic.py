@@ -106,6 +106,7 @@ def get_traffic(ip, community, seconds=300, interfaces=None):
 
     # Stores connection data in Pandas DataFrame for easy processing in the function
     df = pd.DataFrame(temp)
+    print(df)
 
     # If file of interfaces if provided, gets remote hostnames from there.
     # Used when LLDP is not enabled.
@@ -120,12 +121,10 @@ def get_traffic(ip, community, seconds=300, interfaces=None):
             get_lldp_neighbors(ip, community, df)
             df = df.dropna(subset=["sysname"])
 
-    print(df)
     
     bw_table = snmp_bulk_table(ip, community, _OID_SPEED)
     df['Bandwidth'] = df['index'].map(bw_table)
     df = df[df['Bandwidth'] != "0"]
-    print(df)
     # Collects initial traffic values, waits seconds, collects second values
     in_table_init = snmp_bulk_table(ip, community, _OID_IN)
     out_table_init = snmp_bulk_table(ip, community, _OID_OUT)
