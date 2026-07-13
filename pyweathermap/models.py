@@ -79,8 +79,8 @@ def _default_scale() -> MapScale:
     s = MapScale("DEFAULT")
     s.entries = [
         (0, 0, Color(192, 192, 192)),   # no traffic — gray
-        (0, 0.1, Color(255, 255, 255)),    # near-zero — white
-        (0.1, 10, Color(140, 0, 255)),
+        (0, 1, Color(255, 255, 255)),    # near-zero — white
+        (1, 10, Color(140, 0, 255)),
         (10, 25, Color(0, 0, 255)),
         (25, 40, Color(0, 152, 255)),
         (40, 55, Color(0, 220, 0)),
