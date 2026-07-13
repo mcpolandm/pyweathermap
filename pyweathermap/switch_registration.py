@@ -30,7 +30,7 @@ def get_group_members(registry, group):
 
 def get_all_switches(registry):
     unique_switches = dict.fromkeys(registry.values())
-    return sorted({(switch.name, switch.ip) for switch in unique_switches})
+    return sorted({(switch.name, switch.ip) for switch in unique_switches}, key=lambda pair: pair[0].lower())
 
 def get_center_nodes(registry, center_text=None):
     if center_text is None or center_text.lower() not in registry:

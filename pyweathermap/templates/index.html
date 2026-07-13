@@ -82,11 +82,15 @@
   document.querySelectorAll('input[name="display_mode"]').forEach(radio => {
     radio.addEventListener('change', e => {
       const mode = e.target.value;
-      document.querySelectorAll('#switch-select option').forEach(opt => {
+      const select = document.getElementById('switch-select');
+      const options = Array.from(select.options);
+      options.forEach(opt => {
         const val = mode === 'ip' ? opt.dataset.ip : opt.dataset.name;
         opt.value = val;
         opt.textContent = val;
       });
+      options.sort((a, b) => a.textContent.localeCompare(b.textContent, undefined, { numeric: true, sensitivity: 'base' }));
+      options.forEach(opt => select.appendChild(opt));
     });
   });
 </script>
