@@ -150,5 +150,10 @@ def get_traffic(ip, community, seconds=300, interfaces=None):
     return df
 
 
+# Returns None for NaN values
+def clean_iface(value):
+    return None if value != value else value
+
+
 if __name__ == "__main__":
     get_traffic()

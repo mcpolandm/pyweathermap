@@ -29,7 +29,7 @@ def create_nodes_and_links(wm, df, switch, registry, switches):
                 wm.nodes[device_name].node_type = "endpoint/switch"
         # Link name must be unique, even with multiple links between same switch and node
         link_name = f"{switch.name}_{row['interface']}"
-        link = MapLink(name=link_name, node1=switch.name, node2=device_name, bandwidth=row["Bandwidth"], in_bps=row["In Diff"], out_bps=row["Out Diff"], snmp_index=row['index'], iface1=row['interface'], iface2=row.get('remote interface'))
+        link = MapLink(name=link_name, node1=switch.name, node2=device_name, bandwidth=row["Bandwidth"], in_bps=row["In Diff"], out_bps=row["Out Diff"], snmp_index=row['index'], iface1=row['interface'], iface2=datasource.clean_iface(row.get('remote interface')))
         wm.links[link_name] = link
 
 # Primary function called by main.py to initialize WeatherMap object and collect startup data.
