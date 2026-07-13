@@ -48,6 +48,16 @@
       position: absolute;
       display: block;
     }
+    .link-hotspot { position: absolute; cursor: help; }
+    .link-tooltip {
+      position: fixed; pointer-events: none; z-index: 1000;
+      background: #16213e; color: #eee; border: 1px solid #0f3460;
+      border-radius: 4px; padding: 6px 10px; font-size: 0.75rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      opacity: 0; transition: opacity 0.1s;
+    }
+    .link-tooltip.visible { opacity: 1; }
+
     footer {
       background: #16213e;
       padding: 8px 20px;
@@ -108,13 +118,22 @@
   <div class="map-wrap">
     <div class="image-frame">
       <img src="/map/{{ canonical_name }}/map.png?t={{ ts }}" alt="Network Weathermap">
-      {% for name, x1, y1, x2, y2, url in areas %}
+      {% for name, x1, y1, x2, y2, url in n_areas %}
       <a class="node-link"
          style="left:{{ (x1 / map_width * 100) }}%; top:{{ (y1 / map_height * 100) }}%; width:{{ ((x2 - x1) / map_width * 100) }}%; height:{{ ((y2 - y1) / map_height * 100) }}%;"
          href="{{ url }}"
          {% if url.startswith('/') %}target="_self"{% else %}target="_blank" rel="noopener noreferrer"{% endif %}
          title="{{ name }}"></a>
       {% endfor %}
+      {% for a in l_areas %}
+      <div class="link-hotspot"
+        style="left:{{ (a.x1 / map_width * 100) }}%; top:{{ (a.y1 / map_height * 100) }}%; width:{{ ((a.x2 - a.x1) / map_width * 100) }}%; height:{{ ((a.y2 - a.y1) / map_height * 100) }}%;"
+        data-from="{{ a.iface_from or '?' }}"
+        data-to="{{ a.iface_to or '?' }}"
+        data-bandwidth="{{ a.bandwidth }}"
+        data-pct="{{ a.pct }}"></div>
+      {% endfor %}
+
     </div>
   </div>
   <footer>
@@ -123,5 +142,27 @@
     <span>pyweathermap</span>
   </footer>
   {% include "toast.html" %}
+  <div id="link-tooltip" class="link-tooltip"></div>
+  <script>
+    const tip = document.getElementById('link-tooltip');
+    document.querySelectorAll('.link-hotspot').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        tip.innerHTML =
+          `${el.dataset.from} &rarr; ${el.dataset.to}<br>` +
+          `${el.dataset.bandwidth} total &middot; ${el.dataset.pct}% used`;
+        tip.classList.add('visible');
+      });
+      el.addEventListener('mousemove', e => {
+        const pad = 14;
+        let x = e.clientX + pad, y = e.clientY + pad;
+        if (x + tip.offsetWidth > innerWidth) x = e.clientX - tip.offsetWidth - pad;
+        if (y + tip.offsetHeight > innerHeight) y = e.clientY - tip.offsetHeight - pad;
+        tip.style.left = x + 'px';
+        tip.style.top = y + 'px';
+      });
+      el.addEventListener('mouseleave', () => tip.classList.remove('visible'));
+    });
+  </script>
+
 </body>
 </html>

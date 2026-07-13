@@ -64,7 +64,8 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
         if status == "error":
             return render_template("error.html", name=name, error=error), 500
 
-        areas = MapRenderer(m).get_node_areas()
+        n_areas = MapRenderer(m).get_node_areas()
+        l_areas = MapRenderer(m).get_link_areas()
         return render_template(
             "map.html",
             title=m.title or "Network Weathermap",
@@ -72,7 +73,8 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
             ts=int(time.time()),
             nodes=len(m.nodes),
             links=len(m.links),
-            areas=areas,
+            n_areas=n_areas,
+            l_areas=l_areas,
             map_width=m.width,
             map_height=m.height,
             canonical_name=canonical_name,
