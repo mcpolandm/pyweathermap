@@ -68,6 +68,7 @@ def get_lldp_neighbors(ip, community, df):
         match = re.match(regex_loc_port, line.strip())
         if match:
             df.loc[df['interface'] == match.group(2), "LLDP Port"] = match.group(1)
+            df.loc[df['interface'] == match.group(2), "remote interface"] = match.group(2)
 
     # Collecting remote hostnames to match to LLDP port IDs
     regex_remote_hostname = r'\.1\.0\.8802\.1\.1\.2\.1\.4\.1\.1\.9\.[0-9]*\.([0-9]*)\.[0-9]* = STRING: "?([\(\)A-Za-z0-9-\.:]*)"?'
