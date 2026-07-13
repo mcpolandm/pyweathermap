@@ -395,6 +395,7 @@ class MapRenderer:
                                 outline=border_color or bg_color,
                                 width=max(1, S))
         draw.text((cx - tw//2, cy - th//2), text, font=font, fill=text_color)
+        return rx // S, ry // S, rw // S, rh // S # to save for HTML hover
 
     # Helper for _draw_bw_labels_all
     # Iterates through a safe range of the link.
@@ -460,10 +461,10 @@ class MapRenderer:
             out_border = link.out_color.as_tuple() + (255,)
             in_border  = link.in_color.as_tuple()  + (255,)
 
-            self._pill_label(draw,
+            link.out_box = self._pill_label(draw,
                              int(out_pos[0]*S), int(out_pos[1]*S),
                              _fmt(link.out_bps), _F_BW, txt_c, bg_c, out_border, S)
-            self._pill_label(draw,
+            link.in_box = self._pill_label(draw,
                              int(in_pos[0]*S), int(in_pos[1]*S),
                              _fmt(link.in_bps), _F_BW, txt_c, bg_c, in_border, S)
 

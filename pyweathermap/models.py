@@ -67,6 +67,8 @@ class MapLink:
     iface2: Optional[str] = None # interface name on node2
     in_bps: float = 0.0
     out_bps: float = 0.0
+    in_box: Optional[tuple] = None # In box coordinates
+    out_box: Optional[tuple] = None # Out box coordinates
     in_color: Color = field(default_factory=lambda: Color(192, 192, 192))
     out_color: Color = field(default_factory=lambda: Color(192, 192, 192))
 
