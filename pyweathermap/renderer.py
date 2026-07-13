@@ -233,6 +233,7 @@ class MapRenderer:
             areas.append((node.name, x1, y1, x2, y2, node.infourl))
         return areas
     
+    # Iterates through links to return coordinates and connection info.
     def get_link_areas(self) -> list:
         areas = []
         for link in self.wmap.links.values():

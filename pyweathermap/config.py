@@ -21,9 +21,11 @@ def match_registry_name(device_name, registry, switches):
 def create_nodes_and_links(wm, df, switch, registry, switches):
     for _, row in df.iterrows():
         device_name = row["sysname"]
+        matched = match_registry_name(device_name, registry, switches)
+        if matched:
+            device_name = registry[matched].name
         if device_name not in wm.nodes:
             wm.nodes[device_name] = MapNode(name=device_name, label=device_name)
-            matched = match_registry_name(device_name, registry, switches)
             if matched:
                 wm.nodes[device_name].infourl = f"/map/{matched}"
                 wm.nodes[device_name].node_type = "endpoint/switch"
