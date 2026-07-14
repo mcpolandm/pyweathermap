@@ -61,7 +61,7 @@ class MapLink:
     node2: str = ""
     bandwidth: float = 0.0
     width: int = 4
-    bwlabel: str = "bits"
+    bwlabel: str = "bps"
     snmp_index: Optional[str] = None # set to ifIndex for switch connection to endpoint
     iface1: Optional[str] = None # interface name on node1
     iface2: Optional[str] = None # interface name on node2

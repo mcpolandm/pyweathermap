@@ -415,7 +415,7 @@ class MapRenderer:
     # Checks if this point is clear of any neighboring nodes or link text.
     # Returns safe location.
     def _safe_label_t(self, path, t_nominal, node1, node2, clearance, step,
-                      avoid_points=None, label_spacing=30):
+                      avoid_points=None, label_spacing=40):
         avoid_points = avoid_points or []
         for t in [t_nominal + i * step for i in range(20)]:
             if not (0.05 < t < 0.95):
@@ -455,7 +455,7 @@ class MapRenderer:
             full_path, _ = geo
 
             def _fmt(bps):
-                return format_bandwidth(bps)
+                return format_bandwidth(bps) + " bps"
 
             # Find safe out position
             n1 = self.wmap.nodes[link.node1]
