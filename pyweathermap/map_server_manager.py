@@ -55,6 +55,19 @@ def get_or_create_map(app, registry, name, traffic_interval, startup):
             threading.Thread(target=build, args=(app, registry, group_id, switches, traffic_interval), kwargs={"seconds": startup}, daemon=True).start()
     return group_id, entry
 
+# Resets a failed map entry back to "loading" and starts a fresh build thread.
+# No-op if the map isn't currently in "error" (e.g. already retried, or never failed).
+def retry_map(app, registry, name, traffic_interval, startup):
+    group_id, _, switches = resolve(registry, name)
+    with app.config["MAPS_LOCK"]:
+        entry = app.config["MAPS"].get(group_id)
+        if entry is None or entry["status"] != "error":
+            return group_id
+        entry["status"] = "loading"
+        entry["error"] = None
+        threading.Thread(target=build, args=(app, registry, group_id, switches, traffic_interval), kwargs={"seconds": startup}, daemon=True).start()
+    return group_id
+
 # Background process to update one map's rendered image every interval seconds
 # with recent traffic data. One of these loops runs per built map (started once,
 # right after that map's first successful build).

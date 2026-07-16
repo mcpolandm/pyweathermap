@@ -81,6 +81,12 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
             last_updated=datetime.fromtimestamp(last_updated).strftime("%Y-%m-%d %H:%M:%S"), 
         )
 
+    # Resets a failed map's status and retriggers config_from_snmp in a new build thread.
+    @app.route("/map/<name>/retry", methods=["POST"])
+    def retry_map(name):
+        manager.retry_map(app, app.config["REGISTRY"], name, traffic_interval, startup)
+        return redirect(f"/map/{name}")
+
     # Defines route to display a given switch/group's rendered image.
     @app.route("/map/<name>/map.png")
     def map_png(name):
