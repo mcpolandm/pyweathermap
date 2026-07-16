@@ -64,21 +64,25 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
         if status == "error":
             return render_template("error.html", name=name, error=error), 500
 
-        n_areas = MapRenderer(m).get_node_areas()
-        l_areas = MapRenderer(m).get_link_areas()
+        hide_non_switches = request.args.get("hide_non_switches") == "1"
+        wm_view = m.filtered(hide_non_switches)
+
+        n_areas = MapRenderer(wm_view).get_node_areas()
+        l_areas = MapRenderer(wm_view).get_link_areas()
         return render_template(
             "map.html",
             title=m.title or "Network Weathermap",
             interval=refresh_interval,
             ts=int(time.time()),
-            nodes=len(m.nodes),
-            links=len(m.links),
+            nodes=len(wm_view.nodes),
+            links=len(wm_view.links),
             n_areas=n_areas,
             l_areas=l_areas,
             map_width=m.width,
             map_height=m.height,
             canonical_name=canonical_name,
             last_updated=datetime.fromtimestamp(last_updated).strftime("%Y-%m-%d %H:%M:%S"), 
+            hide_non_switches=hide_non_switches
         )
 
     # Resets a failed map's status and retriggers config_from_snmp in a new build thread.
@@ -91,10 +95,11 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
     @app.route("/map/<name>/map.png")
     def map_png(name):
         _, entry = manager.get_or_create_map(app, app.config["REGISTRY"], name, traffic_interval, startup)
+        hide_non_switches = request.args.get("hide_non_switches") == "1"
         with entry["lock"]:
             if entry["status"] != "ready":
                 abort(404)
-            data = entry["png"]
+            data = entry["png_filtered"] if hide_non_switches else entry["png"]
         return Response(data, mimetype="image/png")
     
     @app.route("/notices")

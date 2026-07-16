@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Optional, List, Tuple, Dict
 
 # Defines Color dataclass, which stores r, g, and b values for a Color.
@@ -105,3 +105,32 @@ class WeatherMap:
     nodes: Dict[str, MapNode] = field(default_factory=dict)
     links: Dict[str, MapLink] = field(default_factory=dict)
     scale: MapScale = field(default_factory=_default_scale)
+    no_lldp_switches: set = field(default_factory=set) # center switch names whose neighbor names are unknown
+
+    def filtered(self, hide_non_switches: bool) -> "WeatherMap":
+        if not hide_non_switches:
+            return self
+
+        from . import layout
+
+        kept_nodes = {
+            name for name, node in self.nodes.items()
+            if node.node_type in ("switch", "endpoint/switch") or name.lower().startswith("fi")
+        }
+        for link in self.links.values():
+            if link.node1 in self.no_lldp_switches or link.node2 in self.no_lldp_switches:
+                kept_nodes.add(link.node1)
+                kept_nodes.add(link.node2)
+
+
+        new_nodes = {name: replace(self.nodes[name], x=None, y=None) for name in kept_nodes}
+        new_links = {
+            name: link for name, link in self.links.items()
+            if link.node1 in kept_nodes and link.node2 in kept_nodes
+        }
+        new_wm = replace(self, nodes=new_nodes, links=new_links)
+        # Filtered graphs are sparser, so Kamada-Kawai tends to push loosely-connected
+        # nodes out toward the extreme edges of the layout; a bigger margin keeps them
+        # (and their icons/labels) from spilling past the canvas border.
+        layout.auto_layout(new_wm, margin=200)
+        return new_wm

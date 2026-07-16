@@ -52,6 +52,8 @@ def config_from_snmp(registry, switches, seconds=60):
 
     # Add switch MapNode and call create_nodes_and_links to add information from DataFrame to WeatherMap
     for switch, df in zip(switches, dataframes):
+        if not df.attrs.get("lldp_known", True):
+            wm.no_lldp_switches.add(switch.name)
         infourl = libre.get_device_url(switch.ip)
         node = MapNode(name=switch.name, label=switch.name, node_type="switch", ip=switch.ip, community=switch.community, icon_type="rbox", icon_height=30, icon_width=60, infourl=infourl)
         wm.nodes[switch.name] = node

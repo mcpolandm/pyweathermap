@@ -22,6 +22,7 @@ def build(app, registry, group_id, switches, traffic_interval, seconds=60, start
         with entry["lock"]:
             entry["wmap"] = wmap
             entry["png"] = png
+            entry["png_filtered"] = MapRenderer(wmap.filtered(True)).render_to_bytes("PNG")
             entry["updated"] = time.time()
             entry["status"] = "ready"
         if start_loop:
@@ -107,6 +108,7 @@ def traffic_update_loop(app, registry, group_id, switches, interval=300):
                     link.out_bps = (out2 - out1) * 8 // elapsed
                 # Render updated WeatherMap diagram and refresh update time
                 entry["png"] = MapRenderer(wm).render_to_bytes("PNG")
+                entry["png_filtered"] = MapRenderer(wm.filtered(True)).render_to_bytes("PNG")
                 entry["updated"] = time.time()
 
         cycle += 1
