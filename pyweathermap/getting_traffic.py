@@ -171,6 +171,12 @@ def get_traffic(ip, community, seconds=300, interfaces=None):
     out_table_later = snmp_bulk_table(ip, community, _OID_OUT)
     df['In Traffic Later'] = df['index'].map(in_table_later)
     df['Out Traffic Later'] = df['index'].map(out_table_later)
+    
+    counter_cols = ['In Traffic Init', 'Out Traffic Init', 'In Traffic Later', 'Out Traffic Later']
+    incomplete = df[df[counter_cols].isna().any(axis=1)]
+    if not incomplete.empty:
+        print(f"Dropping interfaces with no HC counters: {list(zip(incomplete['index'], incomplete['interface']))}", flush=True)
+        df = df.dropna(subset=counter_cols)
 
     # Computes difference between intial and secondary traffic values to use for percentage use calculation in rendering.
     df = df.astype({'Bandwidth': 'uint64', 'In Traffic Init': 'uint64', 'Out Traffic Init': 'uint64', 'In Traffic Later': 'uint64', 'Out Traffic Later': 'uint64'})
