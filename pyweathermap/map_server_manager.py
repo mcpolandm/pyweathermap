@@ -30,12 +30,20 @@ def build(app, registry, group_id, switches, traffic_interval, seconds=60, start
                     "name": switches[0].name,
                     "url": f"/map/{group_id}",
                     "ts": time.time(),
-                })     
+                    "type": "ready",
+                })
             threading.Thread(target=traffic_update_loop, args=(app, registry, group_id, switches, traffic_interval), daemon=True).start()
     except Exception as exc:
         with entry["lock"]:
             entry["status"] = "error"
             entry["error"] = str(exc)
+        with app.config["NOTICES_LOCK"]:
+            app.config["NOTICES"].append({
+                "name": switches[0].name,
+                "url": f"/map/{group_id}",
+                "ts": time.time(),
+                "type": "error",
+            })
 
 # Returns the map entry for name's group, or making a build thread if new.
 def get_or_create_map(app, registry, name, traffic_interval, startup):

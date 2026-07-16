@@ -104,9 +104,15 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
             cutoff = time.time() - 60
             app.config["NOTICES"] = [n for n in app.config["NOTICES"] if n["ts"] > cutoff]
             recent = [n for n in app.config["NOTICES"] if n["ts"] > since]
-        return "".join(f'<div class="toast" data-ts="{n["ts"]}">'
-            f'Weathermap for <a href="{n["url"]}">{n["name"]}</a> is ready</div>'
-            for n in recent)
+
+        def render(n):
+            if n.get("type") == "error":
+                return (f'<div class="toast toast-error" data-ts="{n["ts"]}">'
+                    f'Weathermap for <a href="{n["url"]}">{n["name"]}</a> failed to build</div>')
+            return (f'<div class="toast" data-ts="{n["ts"]}">'
+                f'Weathermap for <a href="{n["url"]}">{n["name"]}</a> is ready</div>')
+
+        return "".join(render(n) for n in recent)
 
     return app
 
