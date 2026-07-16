@@ -8,6 +8,12 @@ from .models import (
     WeatherMap
 )
 
+
+# Raised by get_traffic when a switch's SNMP data can't be turned into usable
+# rows, so callers see what went wrong instead of a bare pandas KeyError.
+class SwitchDataError(Exception):
+    pass
+
 # IF-MIB table roots polled via snmpbulkwalk.
 _OID_IN = ".1.3.6.1.2.1.31.1.1.1.6"      # ifHCInOctets
 _OID_OUT = ".1.3.6.1.2.1.31.1.1.1.10"    # ifHCOutOctets
@@ -107,17 +113,47 @@ def get_traffic(ip, community, seconds=300, interfaces=None):
     # Stores connection data in Pandas DataFrame for easy processing in the function
     df = pd.DataFrame(temp)
 
+    # "interface" is only missing here when the ifDescr bulkwalk above returned no
+    # rows at all, which almost always means SNMP itself failed against this switch.
+    if "interface" not in df.columns:
+        raise SwitchDataError(
+            f"No interfaces returned by SNMP walk of ifDescr ({ip}, community={community!r}). "
+            f"Raw snmpbulkwalk output: {output.strip()!r}. "
+            "Check that the switch is reachable, the community string is correct, "
+            "and that IF-MIB is supported/enabled on the device."
+        )
+
     # If file of interfaces if provided, gets remote hostnames from there.
     # Used when LLDP is not enabled.
     if interfaces is not None:
         df_csv = pd.read_csv(interfaces)
-        df = pd.merge(df, df_csv, on='interface', how='inner')
+        if "sysname" not in df_csv.columns:
+            raise SwitchDataError(
+                f"Interfaces file {interfaces!r} for switch {ip} is missing a 'sysname' column. "
+                f"Columns found: {list(df_csv.columns)}."
+            )
+        merged = pd.merge(df, df_csv, on='interface', how='inner')
+        if merged.empty:
+            raise SwitchDataError(
+                f"No interfaces from {ip} matched any row in {interfaces!r} on the 'interface' column. "
+                f"Interfaces from SNMP: {sorted(df['interface'])}. "
+                f"Interfaces in file: {sorted(df_csv['interface'])}."
+            )
+        df = merged
     else:
         output_remote = subprocess.run(['snmpbulkwalk', '-On', '-v2c', '-c', community, ip, ".1.0.8802.1.1.2.1.3.7.1.3"], capture_output=True, text=True).stdout
         if len(output_remote) == 0 or "at this OID" in output_remote:
             df["sysname"] = df["interface"]
         else:
             get_lldp_neighbors(ip, community, df)
+            if "sysname" not in df.columns or df["sysname"].isna().all():
+                raise SwitchDataError(
+                    f"LLDP walk on {ip} returned data but no remote sysnames could be matched "
+                    "to any local interface. This usually means the neighbor's LLDP MIB layout "
+                    "doesn't match the expected format, or LLDP is enabled but no neighbors are up. "
+                    f"Local interfaces seen: {sorted(df['interface'])}. "
+                    f"Columns collected so far: {list(df.columns)}."
+                )
             df = df.dropna(subset=["sysname"])
     
     bw_table = snmp_bulk_table(ip, community, _OID_SPEED)
