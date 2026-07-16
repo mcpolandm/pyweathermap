@@ -171,8 +171,6 @@ def get_traffic(ip, community, seconds=300, interfaces=None):
     out_table_later = snmp_bulk_table(ip, community, _OID_OUT)
     df['In Traffic Later'] = df['index'].map(in_table_later)
     df['Out Traffic Later'] = df['index'].map(out_table_later)
-    missing = set(df['index']) - set(in_table_init.keys())
-    print(missing)
 
     # Computes difference between intial and secondary traffic values to use for percentage use calculation in rendering.
     df = df.astype({'Bandwidth': 'uint64', 'In Traffic Init': 'uint64', 'Out Traffic Init': 'uint64', 'In Traffic Later': 'uint64', 'Out Traffic Later': 'uint64'})
