@@ -87,6 +87,8 @@ Each map is produced as a layered RGBA image rendered at 2× resolution and down
 
 ```
 pyweathermap/
+├── add-ons/                    Additional functionality-must be configured to be used!
+│   └── filter.js               Filtering switch dropdown on landing page
 ├── Containerfile               Example Containerfile for this repo
 ├── main.py                     CLI entry point
 ├── requirements.txt            Project dependencies
@@ -104,6 +106,10 @@ pyweathermap/
     ├── server.py               Flask web server — serves /  and /map.png
     └── switch_registration.py  Parses switch .txt files
 ```
+
+## Add-Ons
+
+Some additional features have been included in the add-ons folder. These features require configuration to the specific user case, and therefore are excluded from the base functionality for easier initialization. Each add-on contains a comment at the beginning of the file explaining the steps needed to include it.
 
 ---
 
