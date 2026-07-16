@@ -141,7 +141,7 @@ def get_traffic(ip, community, seconds=300, interfaces=None):
             )
         df = merged
     else:
-        output_remote = subprocess.run(['snmpbulkwalk', '-On', '-v2c', '-c', community, ip, ".1.0.8802.1.1.2.1.3.7.1.3"], capture_output=True, text=True).stdout
+        output_remote = subprocess.run(['snmpbulkwalk', '-On', '-v2c', '-c', community, ip, ".1.0.8802.1.1.2.1.4.1.1.9"], capture_output=True, text=True).stdout
         if len(output_remote) == 0 or "at this OID" in output_remote:
             df["sysname"] = df["interface"]
         else:
