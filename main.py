@@ -47,10 +47,10 @@ def main():
     if args.server:
         run_server(switch_registry, default_center=args.center, host=args.host, port=args.port, refresh_interval=args.refresh, traffic_interval=args.traffic, startup=args.startup)
     else:
-        center_switches = registration.get_center_nodes(switch_registry, args.center, seconds=args.traffic)
+        center_switches = registration.get_center_nodes(switch_registry, args.center)
         # WeatherMap construction through config_from_snmp call
         print(f"  Parsing configuration through SNMP...")
-        wmap = snmp_config.config_from_snmp(switch_registry, center_switches)
+        wmap = snmp_config.config_from_snmp(switch_registry, center_switches, seconds=args.traffic)
         print(f"  Map: {wmap.width}x{wmap.height}  nodes={len(wmap.nodes)}  links={len(wmap.links)}")
 
         # Determine output path

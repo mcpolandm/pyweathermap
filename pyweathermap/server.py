@@ -16,10 +16,11 @@ import threading
 import time
 from datetime import datetime
 from flask import Flask, Response, render_template, redirect, abort, request
+from markupsafe import escape
 
 from .renderer import MapRenderer
 import pyweathermap.map_server_manager as manager
-from pyweathermap.switch_registration import get_all_switches
+import pyweathermap.switch_registration as registration
 
 # Helper for /get/ and /map/ routes 
 def render_map_page(entry, name, retry_url, map_base, download_name, refresh_interval):
@@ -81,7 +82,7 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
 
     @app.route("/")
     def root():
-        switches = get_all_switches(registry)
+        switches = registration.get_all_switches(registry)
         return render_template("index.html", switches=switches)
     
     @app.route("/goto")
@@ -113,11 +114,15 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
     
     @app.route("/get/<device_ip>/<device_snmp_community>")
     def show_ip_map(device_ip, device_snmp_community):
+        if not registration.is_valid_target(device_ip):
+            abort(400)
         _, entry = manager.get_or_create_ip_map(app, app.config["REGISTRY"], device_ip, device_snmp_community, traffic_interval, startup)
         return render_map_page(entry, name=device_ip, retry_url=f"/get/{device_ip}/{device_snmp_community}/retry", map_base=f"/get/{device_ip}/{device_snmp_community}", download_name=device_ip, refresh_interval=refresh_interval)
 
     @app.route("/get/<device_ip>/<device_snmp_community>/retry", methods=["POST"])
     def retry_ip_map(device_ip, device_snmp_community):
+        if not registration.is_valid_target(device_ip):
+            abort(400)
         manager.retry_map(
             app, app.config["REGISTRY"], traffic_interval, startup,
             ip=device_ip, community=device_snmp_community,
@@ -126,6 +131,8 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
     
     @app.route("/get/<device_ip>/<device_snmp_community>/map.png")
     def get_ip_map_png(device_ip, device_snmp_community):
+        if not registration.is_valid_target(device_ip):
+            abort(400)
         _, entry = manager.get_or_create_ip_map(
             app, app.config["REGISTRY"], device_ip, device_snmp_community, traffic_interval, startup
         )
@@ -140,11 +147,12 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
             recent = [n for n in app.config["NOTICES"] if n["ts"] > since]
 
         def render(n):
+            name, url, ts = escape(n["name"]), escape(n["url"]), n["ts"]
             if n.get("type") == "error":
-                return (f'<div class="toast toast-error" data-ts="{n["ts"]}">'
-                    f'Weathermap for <a href="{n["url"]}">{n["name"]}</a> failed to build</div>')
-            return (f'<div class="toast" data-ts="{n["ts"]}">'
-                f'Weathermap for <a href="{n["url"]}">{n["name"]}</a> is ready</div>')
+                return (f'<div class="toast toast-error" data-ts="{ts}">'
+                    f'Weathermap for <a href="{url}">{name}</a> failed to build</div>')
+            return (f'<div class="toast" data-ts="{ts}">'
+                f'Weathermap for <a href="{url}">{name}</a> is ready</div>')
 
         return "".join(render(n) for n in recent)
 

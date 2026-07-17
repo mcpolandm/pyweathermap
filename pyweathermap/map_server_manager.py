@@ -131,8 +131,8 @@ def traffic_update_loop(app, registry, group_id, switches, notice_url, interval=
                     link = wm.links.get(name)
                     if link is None:
                         continue
-                    link.in_bps = (in2 - in1) * 8 // elapsed
-                    link.out_bps = (out2 - out1) * 8 // elapsed
+                    link.in_bps = max(0, (in2 - in1)) * 8 // elapsed
+                    link.out_bps = max(0 ,(out2 - out1)) * 8 // elapsed
                 # Render updated WeatherMap diagram and refresh update time
                 entry["png"] = MapRenderer(wm).render_to_bytes("PNG")
                 entry["png_filtered"] = MapRenderer(wm.filtered(True)).render_to_bytes("PNG")

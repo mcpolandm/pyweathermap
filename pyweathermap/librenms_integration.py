@@ -1,5 +1,7 @@
 import os
 import requests
+import time
+from urllib.parse import quote
 
 cache = {}
 
@@ -11,12 +13,13 @@ def get_device_url(ip):
         return None
 
     headers = {"X-Auth-Token": api_key}
-    if ip in cache:
-        return cache[ip]
+    cached = cache.get(ip)
+    if cached and cached[1] > time.time():
+        return cached[0]
 
     try:
         resp = requests.get(
-            f"{libre_url}/api/v0/devices/{ip}",
+            f"{libre_url}/api/v0/devices/{quote(ip, safe='')}",
             headers=headers,
             params={"columns": "device_id"},
             timeout=10,
@@ -26,5 +29,6 @@ def get_device_url(ip):
         url = f"{libre_url}/device/{device_id}"
     except Exception:
         url = None
-    cache[ip] = url
+    ttl = 300 if url is None else 3600
+    cache[ip] = (url, time.time() + ttl)
     return url

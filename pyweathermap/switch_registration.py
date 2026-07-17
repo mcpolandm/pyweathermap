@@ -1,6 +1,17 @@
 import os
+import ipaddress
+import re
 from collections import namedtuple
 Switch = namedtuple("Switch", ["ip", "name", "community", "file", "group"])
+
+# Checks that target is a valid IP address or hostname.
+def is_valid_target(ip_or_host):
+    try:
+        ipaddress.ip_address(ip_or_host)
+        return True
+    except ValueError:
+        pass
+    return bool(re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9-]{1,63})*", ip_or_host))
 
 def load_switch_registry(path):
     # Get switch information from file
@@ -42,6 +53,12 @@ def get_center_nodes(registry, center_text=None):
                 "'export PYWEATHERMAP_DEFAULT_CENTER=switch1,switch2'"
             )
         default_names = [name.strip().lower() for name in default_env.split(",")]
+        missing = [n for n in default_names if n not in registry]
+        if missing:
+            raise RuntimeError(
+                f"PYWEATHERMAP_DEFAULT_CENTER references unknown switch(es) {missing!r}; "
+                "check spelling against switch_list.txt."
+            )
         defaults = [registry[k] for k in default_names]
         return defaults
 

@@ -23,7 +23,7 @@ _RE_COUNTER = r"\.(?:[0-9]+\.)+([0-9]+) = (?:Counter64|Gauge32): ([0-9]+)"
 # Bulk-walks a whole IF-MIB table in one snmpbulkwalk call.
 # Returns {ifIndex: value} for every interface.
 def snmp_bulk_table(ip, community, oid):
-    output = subprocess.run(["snmpbulkwalk", '-On', "-v2c", "-c", community, ip, oid], capture_output=True, text=True).stdout
+    output = subprocess.run(["snmpbulkwalk", '-On', "-v2c", "-c", community, "--", ip, oid], capture_output=True, text=True).stdout
     table = {}
     for line in output.strip().split("\n"):
         match = re.match(_RE_COUNTER, line.strip())
@@ -69,7 +69,7 @@ def sample_all_links(wm: WeatherMap):
 def get_lldp_neighbors(ip, community, df):
     # Collecting and matching interface names to get LLDP port IDs
     regex_loc_port = r'\.1\.0\.8802\.1\.1\.2\.1\.3\.7\.1\.3\.([0-9]*) = STRING: "?([/\(\)A-Za-z0-9-\.:]*)"?'
-    output_remote = subprocess.run(['snmpbulkwalk', '-On', '-v2c', '-c', community, ip, ".1.0.8802.1.1.2.1.3.7.1.3"], capture_output=True, text=True).stdout
+    output_remote = subprocess.run(['snmpbulkwalk', '-On', '-v2c', '-c', community, "--", ip, ".1.0.8802.1.1.2.1.3.7.1.3"], capture_output=True, text=True).stdout
     for line in output_remote.strip().split("\n"):
         match = re.match(regex_loc_port, line.strip())
         if match:
@@ -77,7 +77,7 @@ def get_lldp_neighbors(ip, community, df):
 
     # Collecting remote hostnames to match to LLDP port IDs
     regex_remote_hostname = r'\.1\.0\.8802\.1\.1\.2\.1\.4\.1\.1\.9\.[0-9]*\.([0-9]*)\.[0-9]* = STRING: "?([\(\)A-Za-z0-9-\.:]*)"?'
-    output_remote = subprocess.run(['snmpbulkwalk', '-On', '-v2c', '-c', community, ip, ".1.0.8802.1.1.2.1.4.1.1.9"], capture_output=True, text=True).stdout
+    output_remote = subprocess.run(['snmpbulkwalk', '-On', '-v2c', '-c', community, "--", ip, ".1.0.8802.1.1.2.1.4.1.1.9"], capture_output=True, text=True).stdout
     for line in output_remote.strip().split("\n"):
         match = re.match(regex_remote_hostname, line.strip())
         if match:
@@ -87,7 +87,7 @@ def get_lldp_neighbors(ip, community, df):
     # Indexed the same way as lldpRemSysName above (timeMark.localPortNum.remIndex),
     # so it joins on the same "LLDP Port" column.
     regex_remote_port = r'\.1\.0\.8802\.1\.1\.2\.1\.4\.1\.1\.7\.[0-9]*\.([0-9]*)\.[0-9]* = STRING: "?([/\(\)A-Za-z0-9-\.:]*)"?'
-    output_remote = subprocess.run(['snmpbulkwalk', '-On', '-v2c', '-c', community, ip, ".1.0.8802.1.1.2.1.4.1.1.7"], capture_output=True, text=True).stdout
+    output_remote = subprocess.run(['snmpbulkwalk', '-On', '-v2c', '-c', community, "--", ip, ".1.0.8802.1.1.2.1.4.1.1.7"], capture_output=True, text=True).stdout
     for line in output_remote.strip().split("\n"):
         match = re.match(regex_remote_port, line.strip())
         if match:
@@ -100,7 +100,7 @@ def get_lldp_neighbors(ip, community, df):
 def get_traffic(ip, community, seconds=300, interfaces=None):
     # Collect IF-MIB index and interfaces for future snmp commands
     regex_descr = r"\.1\.3\.6\.1\.2\.1\.2\.2\.1\.2\.([0-9]*) = STRING: \"?([A-Za-z0-9/\.:_-]*)\"?"
-    output = subprocess.run(["snmpbulkwalk", '-On', "-v2c", "-c", community, ip, ".1.3.6.1.2.1.2.2.1.2"], capture_output=True, text=True).stdout
+    output = subprocess.run(["snmpbulkwalk", '-On', "-v2c", "-c", community, "--", ip, ".1.3.6.1.2.1.2.2.1.2"], capture_output=True, text=True).stdout
     temp = []
     for line in output.strip().split("\n"):
         match = re.match(regex_descr, line.strip())
@@ -141,7 +141,7 @@ def get_traffic(ip, community, seconds=300, interfaces=None):
             )
         df = merged
     else:
-        output_remote = subprocess.run(['snmpbulkwalk', '-On', '-v2c', '-c', community, ip, ".1.0.8802.1.1.2.1.4.1.1.9"], capture_output=True, text=True).stdout
+        output_remote = subprocess.run(['snmpbulkwalk', '-On', '-v2c', '-c', community, "--", ip, ".1.0.8802.1.1.2.1.4.1.1.9"], capture_output=True, text=True).stdout
         if len(output_remote) == 0 or "at this OID" in output_remote:
             df["sysname"] = df["interface"]
             df.attrs["lldp_known"] = False
@@ -182,7 +182,9 @@ def get_traffic(ip, community, seconds=300, interfaces=None):
     # Computes difference between intial and secondary traffic values to use for percentage use calculation in rendering.
     df = df.astype({'Bandwidth': 'uint64', 'In Traffic Init': 'uint64', 'Out Traffic Init': 'uint64', 'In Traffic Later': 'uint64', 'Out Traffic Later': 'uint64'})
     df['In Diff'] = df['In Traffic Later'] - df['In Traffic Init']
+    df['In Diff'] = df['In Diff'].clip(lower=0)
     df['Out Diff'] = df['Out Traffic Later'] - df['Out Traffic Init']
+    df['Out Diff'] = df['Out Diff'].clip(lower=0)
     df = df.drop(columns=['In Traffic Init', 'Out Traffic Init', 'In Traffic Later', 'Out Traffic Later'])
 
     # Convert all fields to bps
