@@ -41,6 +41,15 @@ python3 main.py --output inventory/image.png
 
 ---
 
+## Server Routes
+The Flask server includes a few routes to navigate between WeatherMaps easily.
+ - index (/): The base landing page, includes a name/IP dropdown of available switches from the switch list.
+ - map (/map/{switch_name_or_IP}): The page where WeatherMaps are created or retrieved and then displayed. Updates continuously.
+ - image (/map/{switch_name_or_IP}/map.png): Just displays the WeatherMap render
+ - unknown switch get (/get/{switch_IP}/{switch_snmp_community}): Same as /map, but for switches not in the switch list. Not accessible from index.
+ - loading: displayed at the /map or /get route when the WeatherMap is under construction.
+ - error: displayed at the /map or /get route when WeatherMap creation fails.
+
 ## Command-line options
 
 | Flag | Default | Description |

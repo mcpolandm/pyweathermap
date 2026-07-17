@@ -4,7 +4,7 @@
 <body style="background:#1a1a2e;color:#eee;font-family:sans-serif;padding:40px;">
   <h2>Failed to build map for {{ name }}</h2>
   <pre style="color:#e94560;white-space:pre-wrap;">{{ error }}</pre>
-  <form action="/map/{{ name }}/retry" method="post">
+  <form action="{{ retry_url }}" method="post">
     <button type="submit" style="background:#e94560;color:#eee;border:none;padding:10px 20px;border-radius:4px;font-size:1em;cursor:pointer;">Retry</button>
   </form>
 </body>

@@ -125,12 +125,12 @@
         Hide non-switches
       </label>
       <span class="meta"><span class="dot"></span>Auto-refreshes every {{ interval }}s</span>
-      <a class="download-link" href="/map/{{ canonical_name }}/map.png{% if hide_non_switches %}?hide_non_switches=1{% endif %}" download="{{ canonical_name }}-weathermap.png">Download PNG</a>
+      <a class="download-link" href="{{ map_base }}/map.png{% if hide_non_switches %}?hide_non_switches=1{% endif %}" download="{{ download_name }}-weathermap.png">Download PNG</a>
     </div>
   </header>
   <div class="map-wrap">
     <div class="image-frame">
-      <img src="/map/{{ canonical_name }}/map.png?t={{ ts }}{% if hide_non_switches %}&hide_non_switches=1{% endif %}" alt="Network Weathermap">
+      <img src="{{ map_base }}/map.png?t={{ ts }}{% if hide_non_switches %}&hide_non_switches=1{% endif %}" alt="Network Weathermap">
       {% for name, x1, y1, x2, y2, url in n_areas %}
       <a class="node-link"
          style="left:{{ (x1 / map_width * 100) }}%; top:{{ (y1 / map_height * 100) }}%; width:{{ ((x2 - x1) / map_width * 100) }}%; height:{{ ((y2 - y1) / map_height * 100) }}%;"
@@ -154,6 +154,7 @@
   <footer>
     <span>{{ nodes }} nodes &nbsp;·&nbsp; {{ links }} links</span>
     <span>Last Updated: {{ last_updated }}</span>
+    <span>Crowded maps or displaying port names my indicate no LLDP data</span>
     <span>pyweathermap</span>
   </footer>
   {% include "toast.html" %}
