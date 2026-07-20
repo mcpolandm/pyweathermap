@@ -67,13 +67,24 @@ def sample_all_links(wm: WeatherMap):
 # Collects LLDP port IDs to match to IF-MIB port IDs on common interface name.
 # Uses LLDP port IDs to collect remote hostnames to save as Node names.
 def get_lldp_neighbors(ip, community, df):
+    regex_subtype = r'\.1\.0\.8802\.1\.1\.2\.1\.3\.7\.1\.2\.([0-9]*) = INTEGER: (?:\w+\()?([0-9]+)\)?'
+    output_subtype = subprocess.run(['snmpbulkwalk', '-On', '-v2c', '-c', community, "--", ip, ".1.0.8802.1.1.2.1.3.7.1.2"], capture_output=True, text=True).stdout
+    subtypes = {}
+    for line in output_subtype.strip().split("\n"):
+        match = re.match(regex_subtype, line.strip())
+        if match:
+            subtypes[match.group(1)] = match.group(2)
+
     # Collecting and matching interface names to get LLDP port IDs
     regex_loc_port = r'\.1\.0\.8802\.1\.1\.2\.1\.3\.7\.1\.3\.([0-9]*) = STRING: "?([/\(\)A-Za-z0-9-\.:]*)"?'
     output_remote = subprocess.run(['snmpbulkwalk', '-On', '-v2c', '-c', community, "--", ip, ".1.0.8802.1.1.2.1.3.7.1.3"], capture_output=True, text=True).stdout
     for line in output_remote.strip().split("\n"):
         match = re.match(regex_loc_port, line.strip())
         if match:
-            df.loc[df['interface'] == match.group(2), "LLDP Port"] = match.group(1)
+            if subtypes.get(match.group(1)) == "7":
+                df.loc[df['index'] == match.group(2), "LLDP Port"] = match.group(1)
+            else:
+                df.loc[df['interface'] == match.group(2), "LLDP Port"] = match.group(1)
 
     # Collecting remote hostnames to match to LLDP port IDs
     regex_remote_hostname = r'\.1\.0\.8802\.1\.1\.2\.1\.4\.1\.1\.9\.[0-9]*\.([0-9]*)\.[0-9]* = STRING: "?([\(\)A-Za-z0-9-\.:]*)"?'
