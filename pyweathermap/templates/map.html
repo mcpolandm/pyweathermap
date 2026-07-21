@@ -60,6 +60,7 @@
       max-height: 50vh;
       overflow-y: auto;
     }
+    .link-tooltip.interactive { pointer-events: auto; }
     .link-tooltip.visible { opacity: 1; }
     .tip-source { display: none; }
     .node-tip .conn-block {
@@ -205,13 +206,32 @@
   {% endfor %}
   <script>
     const tip = document.getElementById('link-tooltip');
+    let hideTimer = null;
+    let settleTimer = null;
+    const SETTLE_MS = 200;
+    function armSettle() {
+      clearTimeout(settleTimer);
+      tip.classList.remove('interactive');
+      settleTimer = setTimeout(() => tip.classList.add('interactive'), SETTLE_MS);
+    }
+    function showTip(html) {
+      clearTimeout(hideTimer);
+      armSettle();
+      tip.innerHTML = html;
+      tip.classList.add('visible');
+    }
+    function scheduleHide() {
+      clearTimeout(settleTimer);
+      hideTimer = setTimeout(() => tip.classList.remove('visible', 'interactive'), 150);
+    }
+    tip.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+    tip.addEventListener('mousemove', armSettle);
+    tip.addEventListener('mouseleave', scheduleHide);
     function attachTooltip(selector, buildHtml) {
       document.querySelectorAll(selector).forEach(el => {
-        el.addEventListener('mouseenter', () => {
-          tip.innerHTML = buildHtml(el);
-          tip.classList.add('visible');
-        });
+        el.addEventListener('mouseenter', () => showTip(buildHtml(el)));
         el.addEventListener('mousemove', e => {
+          armSettle();
           const pad = 14;
           let x = e.clientX + pad, y = e.clientY + pad;
           if (x + tip.offsetWidth > innerWidth) x = e.clientX - tip.offsetWidth - pad;
@@ -219,7 +239,7 @@
           tip.style.left = x + 'px';
           tip.style.top = y + 'px';
         });
-        el.addEventListener('mouseleave', () => tip.classList.remove('visible'));
+        el.addEventListener('mouseleave', scheduleHide);
       });
     }
     attachTooltip('.link-hotspot', el =>
