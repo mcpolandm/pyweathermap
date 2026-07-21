@@ -206,38 +206,42 @@
   {% endfor %}
   <script>
     const tip = document.getElementById('link-tooltip');
+    const hotspots = Array.from(document.querySelectorAll('.node-link, .link-hotspot'));
     let hideTimer = null;
-    let settleTimer = null;
-    const SETTLE_MS = 200;
-    function armSettle() {
-      clearTimeout(settleTimer);
-      tip.classList.remove('interactive');
-      settleTimer = setTimeout(() => tip.classList.add('interactive'), SETTLE_MS);
+    let activeEl = null;
+    function rectsOverlap(a, b) {
+      return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
     }
-    function showTip(html) {
+    function updateInteractivity() {
+      const tipRect = tip.getBoundingClientRect();
+      const blocked = hotspots.some(el => el !== activeEl && rectsOverlap(tipRect, el.getBoundingClientRect()));
+      tip.classList.toggle('interactive', !blocked);
+    }
+    function showTip(el, html) {
       clearTimeout(hideTimer);
-      armSettle();
+      activeEl = el;
       tip.innerHTML = html;
       tip.classList.add('visible');
     }
     function scheduleHide() {
-      clearTimeout(settleTimer);
-      hideTimer = setTimeout(() => tip.classList.remove('visible', 'interactive'), 150);
+      hideTimer = setTimeout(() => {
+        tip.classList.remove('visible', 'interactive');
+        activeEl = null;
+      }, 200);
     }
     tip.addEventListener('mouseenter', () => clearTimeout(hideTimer));
-    tip.addEventListener('mousemove', armSettle);
     tip.addEventListener('mouseleave', scheduleHide);
     function attachTooltip(selector, buildHtml) {
       document.querySelectorAll(selector).forEach(el => {
-        el.addEventListener('mouseenter', () => showTip(buildHtml(el)));
+        el.addEventListener('mouseenter', () => showTip(el, buildHtml(el)));
         el.addEventListener('mousemove', e => {
-          armSettle();
           const pad = 14;
           let x = e.clientX + pad, y = e.clientY + pad;
           if (x + tip.offsetWidth > innerWidth) x = e.clientX - tip.offsetWidth - pad;
           if (y + tip.offsetHeight > innerHeight) y = e.clientY - tip.offsetHeight - pad;
           tip.style.left = x + 'px';
           tip.style.top = y + 'px';
+          updateInteractivity();
         });
         el.addEventListener('mouseleave', scheduleHide);
       });
