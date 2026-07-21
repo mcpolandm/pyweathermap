@@ -115,7 +115,7 @@ class WeatherMap:
 
         kept_nodes = {
             name for name, node in self.nodes.items()
-            if node.node_type in ("switch", "endpoint/switch") or name.lower().startswith("fi")
+            if node.node_type in ("switch", "endpoint/switch")
         }
         for link in self.links.values():
             if link.node1 in self.no_lldp_switches or link.node2 in self.no_lldp_switches:
