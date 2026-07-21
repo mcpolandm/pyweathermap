@@ -1,7 +1,10 @@
 import networkx as nx
+import math
 from .models import (
     WeatherMap
 )
+MIN_ANGLE_GAP = math.radians(6)
+DECONFLICT_PASSES = 6
 
 # Called by config.py at end of WeatherMap initialization to set MapNode positions.
 # Uses NetworkX function kamada_kawai_layout to limit link overlap.
@@ -26,3 +29,40 @@ def auto_layout(wm: WeatherMap, margin: int=80):
         if node.x is None:
             node.x = cx + nx_x * x_scale
             node.y = cy + nx_y * y_scale
+    
+    deconflict_hub_angles(wm)
+
+def deconflict_hub_angles(wm: WeatherMap):
+    for hub in wm.nodes.values():
+        if hub.node_type != "switch":
+            continue
+
+        neighbors = [
+            wm.nodes[link.node2 if link.node1 == hub.name else link.node1]
+            for link in wm.links.values()
+            if hub.name in (link.node1, link.node2)
+        ]
+        if len(neighbors) < 2:
+            continue
+
+        polar = []
+        for n in neighbors:
+            dx, dy = n.x - hub.x, n.y - hub.y
+            polar.append([n, math.hypot(dx, dy), math.atan2(dy, dx)])
+        polar.sort(key=lambda p: p[2])
+
+        for _ in range(DECONFLICT_PASSES):
+            moved = False
+            for i in range(1, len(polar)):
+                gap = polar[i][2] - polar[i - 1][2]
+                if gap < MIN_ANGLE_GAP:
+                    deficit = (MIN_ANGLE_GAP - gap) / 2
+                    polar[i - 1][2] -= deficit
+                    polar[i][2] += deficit
+                    moved = True
+            if not moved:
+                break
+
+        for n, r, theta in polar:
+            n.x = hub.x + r * math.cos(theta)
+            n.y = hub.y + r * math.sin(theta)
