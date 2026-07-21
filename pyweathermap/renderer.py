@@ -249,7 +249,7 @@ class MapRenderer:
             if is_center and other not in center_names:
                 continue
 
-            entry = {"iface_from": iface_from or "?", "iface_to": iface_to or "?", "bandwidth": format_bandwidth(link.bandwidth), "to_bps": format_bandwidth(to_bps), "to_pct": round(to_bps/link.bandwidth*100, 1) if link.bandwidth > 0 else 0.0, "from_bps": format_bandwidth(from_bps), "from_pct": round(from_bps/link.bandwidth*100, 1) if link.bandwidth > 0 else 0.0}
+            entry = {"iface_from": iface_from or "?", "iface_to": iface_to or "?", "bandwidth": format_bandwidth(link.bandwidth) + "bps", "to_bps": format_bandwidth(to_bps) + "bps", "to_pct": round(to_bps/link.bandwidth*100, 1) if link.bandwidth > 0 else 0.0, "from_bps": format_bandwidth(from_bps) + "bps", "from_pct": round(from_bps/link.bandwidth*100, 1) if link.bandwidth > 0 else 0.0}
             if other not in grouped:
                 grouped[other] = []
                 order.append(other)
@@ -479,7 +479,7 @@ class MapRenderer:
             full_path, _ = geo
 
             def _fmt(bps):
-                return format_bandwidth(bps) + " bps"
+                return format_bandwidth(bps) + "bps"
 
             # Find safe out position
             n1 = self.wmap.nodes[link.node1]
