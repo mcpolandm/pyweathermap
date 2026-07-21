@@ -79,14 +79,14 @@ def _default_scale() -> MapScale:
     s = MapScale("DEFAULT")
     s.entries = [
         (0, 0, Color(192, 192, 192)),   # no traffic — gray
-        (0, 1, Color(255, 255, 255)),    # near-zero — white
-        (1, 10, Color(140, 0, 255)),
-        (10, 25, Color(0, 0, 255)),
-        (25, 40, Color(0, 152, 255)),
-        (40, 55, Color(0, 220, 0)),
-        (55, 70, Color(255, 255, 0)),
-        (70, 85, Color(255, 128, 0)),
-        (85, 100, Color(255, 0, 0)),     # saturated — red
+        (0, 12.5, Color(255, 255, 255)),    # near-zero — white
+        (12.5, 25, Color(127, 0, 255)), #purple
+        (25, 37.5, Color(0, 0, 255)), #d blue
+        (37.5, 50, Color(0, 255, 255)), # l blue
+        (50, 62.5, Color(0, 255, 0)), # green
+        (62.5, 75, Color(255, 255, 0)), # yellow
+        (75, 87.5, Color(255, 128, 0)), # orange
+        (87.5, 100, Color(255, 0, 0)),     # saturated — red
     ]
     return s
 
