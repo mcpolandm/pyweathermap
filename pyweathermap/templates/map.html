@@ -48,6 +48,7 @@
       position: absolute;
       display: block;
     }
+    .node-link.no-link { cursor: default; }
     .link-hotspot { position: absolute; cursor: help; }
     .link-tooltip {
       position: fixed; pointer-events: none; z-index: 1000;
@@ -55,8 +56,28 @@
       border-radius: 4px; padding: 6px 10px; font-size: 0.75rem;
       box-shadow: 0 4px 16px rgba(0,0,0,0.5);
       opacity: 0; transition: opacity 0.1s;
+      max-width: 320px;
+      max-height: 50vh;
+      overflow-y: auto;
     }
     .link-tooltip.visible { opacity: 1; }
+    .tip-source { display: none; }
+    .node-tip .conn-block {
+      padding: 6px 0;
+      border-bottom: 1px solid #0f3460 ;
+    }
+    .node-tip .conn-block:last-child { border-bottom: none; }
+    .node-tip .conn-header {
+      font-weight: 600;
+      color: #e94560;
+      margin-bottom: 4px;
+    }
+    .node-tip .link-block {
+      margin: 4px 0 4px 8px;
+      padding-left: 6px;
+      border-left: 2px solid #0f3460 ;
+    }
+    .node-tip .link-title { color: #7fdbff; margin-bottom: 2px; }
 
     footer {
       background: #16213e;
@@ -131,12 +152,14 @@
   <div class="map-wrap">
     <div class="image-frame">
       <img src="{{ map_base }}/map.png?t={{ ts }}{% if hide_non_switches %}&hide_non_switches=1{% endif %}" alt="Network Weathermap">
-      {% for name, x1, y1, x2, y2, url in n_areas %}
-      <a class="node-link"
-         style="left:{{ (x1 / map_width * 100) }}%; top:{{ (y1 / map_height * 100) }}%; width:{{ ((x2 - x1) / map_width * 100) }}%; height:{{ ((y2 - y1) / map_height * 100) }}%;"
-         href="{{ url }}"
-         {% if url.startswith('/') %}target="_self"{% else %}target="_blank" rel="noopener noreferrer"{% endif %}
-         title="{{ name }}"></a>
+      {% for a in n_areas %}
+      <a class="node-link{% if not a.url%} no-link{% endif %}"
+         style="left:{{ (a.x1 / map_width * 100) }}%; top:{{ (a.y1 / map_height * 100) }}%; width:{{ ((a.x2 - a.x1) / map_width * 100) }}%; height:{{ ((a.y2 - a.y1) / map_height * 100) }}%;"
+         {% if a.url %}
+         href="{{ a.url }}"
+         {% if a.url.startswith('/') %}target="_self"{% else %}target="_blank" rel="noopener noreferrer"{% endif %}
+         {% endif %}
+         data-tip="node-tip-{{ loop.index }}"></a>
       {% endfor %}
       {% for a in l_areas %}
       <div class="link-hotspot"
@@ -159,24 +182,53 @@
   </footer>
   {% include "toast.html" %}
   <div id="link-tooltip" class="link-tooltip"></div>
+  {% for a in n_areas %}
+  <div id="node-tip-{{ loop.index}}" class="tip-source">
+    <div class="node-tip">
+      {% for conn in a.connections %}
+      <div class="conn-block">
+        <div class="conn-header">Connection: {{ a.name }} &rarr; {{ conn.other }}</div>
+        {% for l in conn.links %}
+        <div class="link-block">
+          <div class="link-title">Link: {{ l.iface_from }} &rarr; {{ l.iface_to }}</div>
+          <div>Bandwidth: {{ l.bandwidth }}</div>
+          <div>To endpoint: {{ l.to_bps }}, {{ l.to_pct }}%</div>
+          <div>From endpoint: {{ l.from_bps }}, {{ l.from_pct }}%</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="conn-block">No active links</div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
   <script>
     const tip = document.getElementById('link-tooltip');
-    document.querySelectorAll('.link-hotspot').forEach(el => {
-      el.addEventListener('mouseenter', () => {
-        tip.innerHTML =
-          `${el.dataset.from} &rarr; ${el.dataset.to}<br>` + `${el.dataset.fromi} &rarr; ${el.dataset.toi}<br>` +
-          `${el.dataset.bandwidth} total &middot; ${el.dataset.pct}% used`;
-        tip.classList.add('visible');
+    function attachTooltip(selector, buildHtml) {
+      document.querySelectorAll(selector).forEach(el => {
+        el.addEventListener('mouseenter', () => {
+          tip.innerHTML = buildHtml(el);
+          tip.classList.add('visible');
+        });
+        el.addEventListener('mousemove', e => {
+          const pad = 14;
+          let x = e.clientX + pad, y = e.clientY + pad;
+          if (x + tip.offsetWidth > innerWidth) x = e.clientX - tip.offsetWidth - pad;
+          if (y + tip.offsetHeight > innerHeight) y = e.clientY - tip.offsetHeight - pad;
+          tip.style.left = x + 'px';
+          tip.style.top = y + 'px';
+        });
+        el.addEventListener('mouseleave', () => tip.classList.remove('visible'));
       });
-      el.addEventListener('mousemove', e => {
-        const pad = 14;
-        let x = e.clientX + pad, y = e.clientY + pad;
-        if (x + tip.offsetWidth > innerWidth) x = e.clientX - tip.offsetWidth - pad;
-        if (y + tip.offsetHeight > innerHeight) y = e.clientY - tip.offsetHeight - pad;
-        tip.style.left = x + 'px';
-        tip.style.top = y + 'px';
-      });
-      el.addEventListener('mouseleave', () => tip.classList.remove('visible'));
+    }
+    attachTooltip('.link-hotspot', el =>
+      `${el.dataset.from} &rarr; ${el.dataset.to}<br>${el.dataset.fromi} &rarr; ${el.dataset.toi}<br>` +
+      `${el.dataset.bandwidth} total &middot; ${el.dataset.pct}% used`
+    );
+    attachTooltip('.node-link', el => {
+      const src = document.getElementById(el.dataset.tip);
+      return src ? src.innerHTML : '';
     });
   </script>
   <script>

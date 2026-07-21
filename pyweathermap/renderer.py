@@ -222,16 +222,40 @@ class MapRenderer:
     # Returns name, area, and infourl to be used by server to create link areas.
     def get_node_areas(self) -> list:
         self._expand_box_nodes_for_labels()
+        center_names = {n.name for n in self.wmap.nodes.values() if n.node_type == "switch"}
         areas = []
         for node in self.wmap.nodes.values():
-            if not node.infourl:
-                continue
             x1 = int(node.x - node.icon_width / 2)
             y1 = int(node.y - node.icon_height / 2)
             x2 = int(node.x + node.icon_width / 2)
             y2 = int(node.y + node.icon_height / 2)
-            areas.append((node.name, x1, y1, x2, y2, node.infourl))
+            areas.append({"name": node.name, 
+                          "x1": x1, "y1": y1, "x2": x2, "y2": y2, "url": node.infourl,
+                          "connections": self.get_node_connections(node.name, center_names),})
         return areas
+    
+    def get_node_connections(self, node_name, center_names) -> list:
+        is_center = node_name in center_names
+        grouped = {}
+        order = []
+        for link in self.wmap.links.values():
+            if link.node1 == node_name:
+                other, iface_from, iface_to, from_bps, to_bps = link.node2, link.iface1, link.iface2, link.out_bps, link.in_bps
+            elif link.node2 == node_name:
+                other, iface_from, iface_to, from_bps, to_bps = link.node1, link.iface2, link.iface1, link.in_bps, link.out_bps
+            else:
+                continue
+
+            if is_center and other not in center_names:
+                continue
+
+            entry = {"iface_from": iface_from or "?", "iface_to": iface_to or "?", "bandwidth": format_bandwidth(link.bandwidth), "to_bps": format_bandwidth(to_bps), "to_pct": round(to_bps/link.bandwidth*100, 1) if link.bandwidth > 0 else 0.0, "from_bps": format_bandwidth(from_bps), "from_pct": round(from_bps/link.bandwidth*100, 1) if link.bandwidth > 0 else 0.0}
+            if other not in grouped:
+                grouped[other] = []
+                order.append(other)
+            grouped[other].append(entry)
+
+        return [{"other": o, "links": grouped[o]} for o in order]
     
     # Iterates through links to return coordinates and connection info.
     def get_link_areas(self) -> list:
