@@ -158,9 +158,10 @@ def format_bandwidth(bps: float) -> str:
 
 class MapRenderer:
     # Store WeatherMpa dn superscaling factor on init.
-    def __init__(self, wmap: WeatherMap):
+    def __init__(self, wmap: WeatherMap, show_labels: bool = True):
         self.wmap = wmap
         self._S = _SS
+        self._show_labels = show_labels
 
 # ── Primary ──────────────────────────────────────────────────────────────
 
@@ -184,10 +185,10 @@ class MapRenderer:
         link_layer = Image.new("RGBA", (sw, sh), (0, 0, 0, 0))
         self._draw_links(ImageDraw.Draw(link_layer), S)
         canvas = Image.alpha_composite(canvas, link_layer)
-
-        bw_layer = Image.new("RGBA", (sw, sh), (0, 0, 0, 0))
-        self._draw_bw_labels_all(ImageDraw.Draw(bw_layer), S)
-        canvas = Image.alpha_composite(canvas, bw_layer)
+        if self._show_labels:
+            bw_layer = Image.new("RGBA", (sw, sh), (0, 0, 0, 0))
+            self._draw_bw_labels_all(ImageDraw.Draw(bw_layer), S)
+            canvas = Image.alpha_composite(canvas, bw_layer)
 
     # ── Layer 3: Node shadows ──────────────────────────────────────────
         shadow_layer = Image.new("RGBA", (sw, sh), (0, 0, 0, 0))
@@ -256,19 +257,6 @@ class MapRenderer:
             grouped[other].append(entry)
 
         return [{"other": o, "links": grouped[o]} for o in order]
-    
-    # Iterates through links to return coordinates and connection info.
-    def get_link_areas(self) -> list:
-        areas = []
-        for link in self.wmap.links.values():
-            if not link.out_box or not link.in_box:
-                continue
-            x1, y1, x2, y2 = link.out_box
-            areas.append({"x1": x1, "y1": y1, "x2": x2, "y2": y2, "from": link.node1, "to": link.node2, "iface_from": link.iface1, "iface_to": link.iface2, "bandwidth": format_bandwidth(link.bandwidth), "pct": round(link.out_bps/link.bandwidth*100, 1)})
-            x1, y1, x2, y2 = link.in_box
-            areas.append({"x1": x1, "y1": y1, "x2": x2, "y2": y2, "from": link.node2, "to": link.node1, "iface_from": link.iface2, "iface_to": link.iface1, "bandwidth": format_bandwidth(link.bandwidth), "pct": round(link.in_bps/link.bandwidth*100, 1)})
-        
-        return areas
 
 # ── Data resolution ─────────────────────────────────────────────────────────
 

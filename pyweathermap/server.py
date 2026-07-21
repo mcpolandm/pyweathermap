@@ -40,7 +40,6 @@ def render_map_page(entry, name, retry_url, map_base, download_name, refresh_int
     wm_view = m.filtered(hide_non_switches)
 
     n_areas = MapRenderer(wm_view).get_node_areas()
-    l_areas = MapRenderer(wm_view).get_link_areas()
     return render_template(
         "map.html",
         title=m.title or "Network Weathermap",
@@ -49,7 +48,6 @@ def render_map_page(entry, name, retry_url, map_base, download_name, refresh_int
         nodes=len(wm_view.nodes),
         links=len(wm_view.links),
         n_areas=n_areas,
-        l_areas=l_areas,
         map_width=m.width,
         map_height=m.height,
         map_base=map_base,

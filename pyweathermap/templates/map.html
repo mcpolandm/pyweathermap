@@ -49,7 +49,6 @@
       display: block;
     }
     .node-link.no-link { cursor: default; }
-    .link-hotspot { position: absolute; cursor: help; }
     .link-tooltip {
       position: fixed; pointer-events: none; z-index: 1000;
       background: #16213e; color: #eee; border: 1px solid #0f3460;
@@ -161,17 +160,6 @@
          {% endif %}
          data-tip="node-tip-{{ loop.index }}"></a>
       {% endfor %}
-      {% for a in l_areas %}
-      <div class="link-hotspot"
-        style="left:{{ (a.x1 / map_width * 100) }}%; top:{{ (a.y1 / map_height * 100) }}%; width:{{ ((a.x2 - a.x1) / map_width * 100) }}%; height:{{ ((a.y2 - a.y1) / map_height * 100) }}%;"
-        data-fromi="{{ a.iface_from or '?' }}"
-        data-toi="{{ a.iface_to or '?' }}"
-        data-from="{{ a.from }}"
-        data-to="{{ a.to }}"
-        data-bandwidth="{{ a.bandwidth }}"
-        data-pct="{{ a.pct }}"></div>
-      {% endfor %}
-
     </div>
   </div>
   <footer>
@@ -205,39 +193,31 @@
   {% endfor %}
   <script>
     const tip = document.getElementById('link-tooltip');
-    function attachTooltip(selector, buildHtml) {
-      document.querySelectorAll(selector).forEach(el => {
-        el.addEventListener('mouseenter', () => {
-          tip.innerHTML = buildHtml(el);
-          tip.scrollTop = 0;
-          tip.classList.add('visible');
-        });
-        el.addEventListener('mousemove', e => {
-          const pad = 14;
-          let x = e.clientX + pad, y = e.clientY + pad;
-          if (x + tip.offsetWidth > innerWidth) x = e.clientX - tip.offsetWidth - pad;
-          if (y + tip.offsetHeight > innerHeight) y = e.clientY - tip.offsetHeight - pad;
-          tip.style.left = x + 'px';
-          tip.style.top = y + 'px';
-        });
-        el.addEventListener('mouseleave', () => tip.classList.remove('visible'));
-        el.addEventListener('wheel', e => {
-          if (tip.classList.contains('visible')) {
-            tip.scrollTop += e.deltaY;
-            e.preventDefault();
-          }
-        }, { passive: false });
+    document.querySelectorAll('.node-link').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        const src = document.getElementById(el.dataset.tip);
+        tip.innerHTML = src ? src.innerHTML : '';
+        tip.scrollTop = 0;
+        tip.classList.add('visible');
       });
-    }
-    attachTooltip('.link-hotspot', el =>
-      `${el.dataset.from} &rarr; ${el.dataset.to}<br>${el.dataset.fromi} &rarr; ${el.dataset.toi}<br>` +
-      `${el.dataset.bandwidth} total &middot; ${el.dataset.pct}% used`
-    );
-    attachTooltip('.node-link', el => {
-      const src = document.getElementById(el.dataset.tip);
-      return src ? src.innerHTML : '';
+      el.addEventListener('mousemove', e => {
+        const pad = 14;
+        let x = e.clientX + pad, y = e.clientY + pad;
+        if (x + tip.offsetWidth > innerWidth) x = e.clientX - tip.offsetWidth - pad;
+        if (y + tip.offsetHeight > innerHeight) y = e.clientY - tip.offsetHeight - pad;
+        tip.style.left = x + 'px';
+        tip.style.top = y + 'px';
+      });
+      el.addEventListener('mouseleave', () => tip.classList.remove('visible'));
+      el.addEventListener('wheel', e => {
+        if (tip.classList.contains('visible')) {
+          tip.scrollTop += e.deltaY;
+          e.preventDefault();
+        }
+      }, { passive: false });
     });
   </script>
+
   <script>
     document.getElementById('hide-non-switches').addEventListener('change', (e) => {
       const url = new URL(window.location);

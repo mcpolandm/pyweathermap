@@ -31,11 +31,11 @@ def build(app, registry, group_id, switches, traffic_interval, notice_url, secon
     entry = app.config["MAPS"][group_id]
     try:
         wmap = snmp_config.config_from_snmp(registry, switches, seconds)
-        png = MapRenderer(wmap).render_to_bytes("PNG")
+        png = MapRenderer(wmap, show_labels=False).render_to_bytes("PNG")
         with entry["lock"]:
             entry["wmap"] = wmap
             entry["png"] = png
-            entry["png_filtered"] = MapRenderer(wmap.filtered(True)).render_to_bytes("PNG")
+            entry["png_filtered"] = MapRenderer(wmap.filtered(True), show_labels=False).render_to_bytes("PNG")
             entry["updated"] = time.time()
             entry["status"] = "ready"
         if start_loop:
@@ -134,8 +134,8 @@ def traffic_update_loop(app, registry, group_id, switches, notice_url, interval=
                     link.in_bps = max(0, (in2 - in1)) * 8 // elapsed
                     link.out_bps = max(0 ,(out2 - out1)) * 8 // elapsed
                 # Render updated WeatherMap diagram and refresh update time
-                entry["png"] = MapRenderer(wm).render_to_bytes("PNG")
-                entry["png_filtered"] = MapRenderer(wm.filtered(True)).render_to_bytes("PNG")
+                entry["png"] = MapRenderer(wm, show_labels=False).render_to_bytes("PNG")
+                entry["png_filtered"] = MapRenderer(wm.filtered(True), show_labels=False).render_to_bytes("PNG")
                 entry["updated"] = time.time()
 
         cycle += 1
