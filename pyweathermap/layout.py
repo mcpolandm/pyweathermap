@@ -6,6 +6,7 @@ from .models import (
 MIN_ANGLE_GAP = math.radians(6)
 DECONFLICT_PASSES = 6
 SPARSE_NODE_THRESHOLD = 8
+SPARSE_SHRINK_EXPONENT = 1.0
 
 # Called by config.py at end of WeatherMap initialization to set MapNode positions.
 # Uses NetworkX function kamada_kawai_layout to limit link overlap.
@@ -26,7 +27,7 @@ def auto_layout(wm: WeatherMap, margin: int=80):
 
     node_count = len(wm.nodes)
     if node_count < SPARSE_NODE_THRESHOLD:
-        size_factor = math.sqrt(node_count / SPARSE_NODE_THRESHOLD)
+        size_factor = (node_count / SPARSE_NODE_THRESHOLD) ** SPARSE_SHRINK_EXPONENT
         x_scale *= size_factor
         y_scale *= size_factor
 
