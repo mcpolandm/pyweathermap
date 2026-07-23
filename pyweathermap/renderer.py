@@ -312,7 +312,42 @@ class MapRenderer:
                 margin = 2  # logical px
                 node.x = min(max(node.x, half_w + margin), self.wmap.width - half_w - margin)
                 node.y = min(max(node.y, half_h + margin), self.wmap.height - half_h - margin)
+        self._resolve_node_overlaps()
 
+    # Iterates pairwise over nodes, pushing apart any whose boxes overlap.
+    # Repeats a few passes to catch new overlaps.
+    def _resolve_node_overlaps(self, iterations=6, min_gap=4):
+        nodes = list(self.wmap.nodes.values())
+        margin = 2  # logical px
+        for _ in range(iterations):
+            moved = False
+            for i in range(len(nodes)):
+                a = nodes[i]
+                for j in range(i + 1, len(nodes)):
+                    b = nodes[j]
+                    dx = b.x - a.x
+                    dy = b.y - a.y
+                    overlap_x = (a.icon_width + b.icon_width) / 2 + min_gap - abs(dx)
+                    overlap_y = (a.icon_height + b.icon_height) / 2 + min_gap - abs(dy)
+                    if overlap_x <= 0 or overlap_y <= 0:
+                        continue
+                    moved = True
+                    if overlap_x < overlap_y:
+                        shift = overlap_x / 2
+                        sign = 1 if dx >= 0 else -1
+                        a.x -= sign * shift
+                        b.x += sign * shift
+                    else:
+                        shift = overlap_y / 2
+                        sign = 1 if dy >= 0 else -1
+                        a.y -= sign * shift
+                        b.y += sign * shift
+            for n in nodes:
+                half_w, half_h = n.icon_width / 2, n.icon_height / 2
+                n.x = min(max(n.x, half_w + margin), self.wmap.width - half_w - margin)
+                n.y = min(max(n.y, half_h + margin), self.wmap.height - half_h - margin)
+            if not moved:
+                break
 
 # ── Link rendering ───────────────────────────────────────────────────────────
 
