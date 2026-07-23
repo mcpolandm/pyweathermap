@@ -3,7 +3,7 @@ import math
 from .models import (
     WeatherMap
 )
-MIN_ANGLE_GAP = math.radians(6)
+MIN_ANGLE_GAP = math.radians(8)
 DECONFLICT_PASSES = 6
 SPARSE_NODE_THRESHOLD = 8
 SPARSE_SHRINK_EXPONENT = 1.0

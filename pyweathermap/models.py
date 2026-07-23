@@ -60,7 +60,7 @@ class MapLink:
     node1: str = ""
     node2: str = ""
     bandwidth: float = 0.0
-    width: int = 4
+    width: int = 6
     bwlabel: str = "bps"
     snmp_index: Optional[str] = None # set to ifIndex for switch connection to endpoint
     iface1: Optional[str] = None # interface name on node1
@@ -99,7 +99,7 @@ class WeatherMap:
     width: int = 2000
     height: int = 2000
     title: str = "My Network Map"
-    bgcolor: Color = field(default_factory=lambda: Color(240, 245, 255))
+    bgcolor: Color = field(default_factory=lambda: Color(220, 225, 255))
     title_color: Color = field(default_factory=lambda: Color(0, 0, 0))
     time_color: Color = field(default_factory=lambda: Color(128, 128, 128))
     nodes: Dict[str, MapNode] = field(default_factory=dict)

@@ -43,11 +43,12 @@ def _load_font(size: int) -> ImageFont.FreeTypeFont:
 # Global Defaults
 # ──────────────────────────────────────────────────────────────────────────────
 _SS = 2                                 # Supersampling factor
-_PARALLEL_SPACING = 12                  # spacing between parallel links factor
-_F_LABEL = _load_font(12 * _SS)         # Node label font size
-_F_BW    = _load_font(10 * _SS)         # Link label font size
-_F_TITLE = _load_font(16 * _SS)         # Title label font size
-_F_SMALL = _load_font( 9 * _SS)         # Minimum font size
+_PARALLEL_SPACING = 14                  # spacing between parallel links factor
+_F_LABEL     = _load_font(15 * _SS)     # Node label font size
+_F_LABEL_MID = _load_font(15 * _SS)     # Node label fallback font size (when full size doesn't fit)
+_F_BW        = _load_font(11 * _SS)     # Link label font size
+_F_TITLE     = _load_font(18 * _SS)     # Title label font size
+_F_SMALL     = _load_font(12 * _SS)     # Minimum font size
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Colour helpers
@@ -435,8 +436,6 @@ class MapRenderer:
             pt, _ = _point_along_path(path, t)
             clear = True
             for node in self.wmap.nodes.values():
-                if node is node1 or node is node2:
-                    continue
                 d = _distance(pt, (node.x, node.y))
                 half_diag = math.hypot(node.icon_width, node.icon_height) / 2
                 if d < half_diag + clearance:
@@ -513,7 +512,7 @@ class MapRenderer:
         font = _F_LABEL
         bb = draw.textbbox((0, 0), text, font=font)
         if bb[2] - bb[0] > available_w:
-            font = _F_BW
+            font = _F_LABEL_MID
             bb = draw.textbbox((0, 0), text, font=font)
         if bb[2] - bb[0] > available_w:
             font = _F_SMALL
