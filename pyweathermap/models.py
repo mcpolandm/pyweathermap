@@ -16,7 +16,7 @@ class Color:
 
 # Defines a collection of low,high,Color entries that fill the scale from 0-100%.
 # color_for_percentage determines the correct entry for that percentage.
-@dataclass
+@dataclass(slots=True)
 class MapScale:
     name: str
     entries: List[Tuple[float, float, Color]] = field(default_factory=list)
@@ -33,7 +33,7 @@ class MapScale:
 # Contains name, label, type, position values, and icon details for all nodes.
 # Switch nodes have ip and community set for use by SNMP.
 # infourl allows clickable link on that node, used to redirect to other pages.
-@dataclass
+@dataclass(slots=True)
 class MapNode:
     name: str
     label: str = ""
@@ -54,7 +54,7 @@ class MapNode:
 # in/out_bps define in/out traffic values, 
 # with in/out_color as the corresponding colors for those percentages of bandwidth.
 # snmp_index is saved for SNMP commands.
-@dataclass
+@dataclass(slots=True)
 class MapLink:
     name: str
     node1: str = ""
@@ -94,7 +94,7 @@ def _default_scale() -> MapScale:
 # nodes and links contain a list of all MapNodes and MapLinks in the Map.
 # Scale contains the default scale.
 # All other values are defaults and unchanged.
-@dataclass
+@dataclass(slots=True)
 class WeatherMap:
     width: int = 2000
     height: int = 2000
