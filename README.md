@@ -20,6 +20,9 @@ export PYWEATHERMAP_DEFAULT_CENTER=switch1,switch2
 # Switch information text file:
 export PYWEATHERMAP_SWITCHES=/path/to/switches.txt
 
+# Optional: Enable /get route for any switch
+export PYWEATHERMAP_GET_SECRET=256-bit-key-here
+
 # Optional: Add integration to LibreNMS
 # LibreNMS URL:
 export LIBRENMS_URL=https://librenms.link.org
@@ -46,7 +49,7 @@ The Flask server includes a few routes to navigate between WeatherMaps easily.
  - index (/): The base landing page, includes a name/IP dropdown of available switches from the switch list.
  - map (/map/{switch_name_or_IP}): The page where WeatherMaps are created or retrieved and then displayed. Updates continuously.
  - image (/map/{switch_name_or_IP}/map.png): Just displays the WeatherMap render
- - unknown switch get (/get/{switch_IP}/{switch_snmp_community}): Same as /map, but for switches not in the switch list. Not accessible from index.
+ - unknown switch get (/get/{switch_IP}/{switch_snmp_community}?sig=): Same as /map, but for switches not in the switch list. Not accessible from index. Requires a signature to be accessed that can be formed from the PYWEATHERMAP_GET_SECRET to ensure data security.
  - loading: displayed at the /map or /get route when the WeatherMap is under construction.
  - error: displayed at the /map or /get route when WeatherMap creation fails.
 
@@ -107,6 +110,7 @@ pyweathermap/
 │   ├── simple.txt              Example switch file (One switch)
 │   └── simple.png              Example output (7 nodes, 7 links)
 └── pyweathermap/
+    ├── auth.py                 Verifies authorization for /get route
     ├── config.py               Creates WeatherMap objects from switch registry
     ├── getting_traffic.py      Collects collection details for one switch
     ├── layout.py               Uses NetworkX library to determine Node positions
