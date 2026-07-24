@@ -81,14 +81,16 @@ where:
 
 ## How rendering works
 
-Each map is produced as a layered RGBA image rendered at 2× resolution and downscaled with Lanczos filtering for smooth edges:
+Each map is drawn onto a single RGBA canvas at 2× resolution and downscaled with Lanczos filtering for smooth edges, in this order:
 
 1. **Background** — solid fill
 2. **Links** — each link is two fat arrows meeting at the split point. The arrow from node 1 toward the midpoint is coloured by *out* utilisation; the arrow from node 2 toward the midpoint is coloured by *in* utilisation. Colours come from the active `SCALE`.
-3. **Node shadows** — soft Gaussian drop-shadows behind each node shape.
+3. **Node shadows** — soft Gaussian drop-shadows behind each node shape. This is done on a new layer.
 4. **Nodes** — filled shapes (`box`, `rbox`, `round`) with a top-light highlight.
 5. **Bandwidth labels** — pill-shaped labels on each arrow half showing the current throughput.
 6. **Legend + Title + timestamp** — a continuous gradient bar showing 0–100 % with tick marks.
+
+Opaque elements are drawn straight onto the canvas. The few translucent ones are alpha-blended in through a small patch sized to just that element to lessen memory per render.
 
 ---
 
@@ -111,7 +113,7 @@ pyweathermap/
     ├── librenms_integration.py Creates links to LibreNMS page in WeatherMap if API information is configured 
     ├── map_server_manager.py   Processes new WeatherMap creation for live server
     ├── models.py               Dataclasses: WeatherMap, MapNode, MapLink, MapScale, Color, default_scale
-    ├── renderer.py             Pillow-based image renderer (layered RGBA + 2× supersampling)
+    ├── renderer.py             Pillow-based image renderer (2× supersampling)
     ├── server.py               Flask web server — serves /  and /map.png
     └── switch_registration.py  Parses switch .txt files
 ```

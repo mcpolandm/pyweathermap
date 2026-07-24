@@ -1,13 +1,19 @@
 """
-2x supersampling + layered RGBA compositing.
+2x supersampling, drawn onto a single RGBA canvas.
 
-Layer order (bottom → top):
+Draw order (bottom → top):
   1. Background  (solid fill + optional background image)
   2. Links       (sharp fat arrows, anti-aliased via supersampling)
-  3. Node shadows (blurred dark shapes offset behind each node)
+  3. Node shadows (blurred dark shapes offset behind each node — the one
+                   element that still needs its own transparent layer,
+                   since blurring in place would smear the canvas beneath it)
   4. Nodes       (filled shapes with top-highlight rim)
   5. Labels      (BW labels as rounded pills; node labels)
   6. HUD         (gradient legend, title, timestamp)
+
+Everything opaque draws straight onto the canvas via ImageDraw, which
+overwrites rather than blends. The few translucent elements go through
+`_composite_patch` instead of allocating a full canvas-sized transparent layer for each one.
 
 All geometry is computed in logical 1x coordinates; the scale factor S=2
 is applied only at draw time. The final image is downscaled with LANCZOS
@@ -153,8 +159,8 @@ def format_bandwidth(bps: float) -> str:
         return f"{bps/1e3:.1f}K"
     return f"{bps:.0f}"
 
+# For translucent content. Draws onto a transparent patch sized to box, in patch-local coordinates.
 def _composite_patch(canvas, box, draw_fn):
-    """For translucent content. Draws onto a transparent patch sized to box, in patch-local coordinates."""
     x0, y0, x1, y1 = (int(round(v)) for v in box)
     x0, y0 = max(x0, 0), max(y0, 0)
     x1, y1 = min(x1, canvas.width), min(y1, canvas.height)
@@ -179,8 +185,8 @@ class MapRenderer:
 
 # ── Primary ──────────────────────────────────────────────────────────────
 
-    # Renders WeatherMap to PIL Image layer by layer.
-    # Layers are background, links, node shadows, nodes, labels, and HUD.
+    # Renders WeatherMap to PIL Image.
+    # Drawings are background, links, node shadows, nodes, labels, and HUD.
     # Downscales to target size.
     def render(self) -> Image.Image:
         S = self._S
@@ -192,26 +198,26 @@ class MapRenderer:
         self._expand_box_nodes_for_labels()
         self._parallel_offsets = self._compute_parallel_offsets()
 
-    # ── Layer 1: Background ────────────────────────────────────────────
+    # ── Step 1: Background ────────────────────────────────────────────
         canvas = Image.new("RGBA", (sw, sh), bg_rgba)
         draw = ImageDraw.Draw(canvas)
 
-    # ── Layer 2: Links ─────────────────────────────────────────────────
+    # ── Step 2: Links ─────────────────────────────────────────────────
         self._draw_links(draw, S)
         if self._show_labels:
             self._draw_bw_labels_all(canvas, draw, S)
 
-    # ── Layer 3: Node shadows ──────────────────────────────────────────
+    # ── Step 3: Node shadows (isolated layer) ──────────────────────────────────────────
         shadow_layer = Image.new("RGBA", (sw, sh), (0, 0, 0, 0))
         self._draw_node_shadows(ImageDraw.Draw(shadow_layer), S)
         shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(radius=S * 6))
         canvas = Image.alpha_composite(canvas, shadow_layer)
         draw = ImageDraw.Draw(canvas)
 
-    # ── Layer 4: Nodes ─────────────────────────────────────────────────
+    # ── Step 4: Nodes ─────────────────────────────────────────────────
         self._draw_nodes(canvas, draw, S)
 
-    # ── Layer 5 & 6: Labels + HUD ──────────────────────────────────────
+    # ── Steps 5 & 6: Labels + HUD ──────────────────────────────────────
         self._draw_node_labels_all(draw, S)
         self._draw_gradient_legend(canvas, draw, self.wmap.scale, 12*S, 12*S, "Traffic Load", S)
         self._draw_title(draw, S)
@@ -436,6 +442,7 @@ class MapRenderer:
             inner = [box[0]+S*2, box[1]+S*2, box[2]-S*2, box[1]+h2-S*2]
             if inner[2] > inner[0] and inner[3] > inner[1]:
                 hl_fill = _lighten(fill, 0.30) + (180,)
+                # Rim is alpha-blended with composite_patch
                 if node.icon_type == "rbox":
                     hl_radius = max(1, radius - S*2)
                     _composite_patch(canvas, inner, lambda pd, lb, r=hl_radius: pd.rounded_rectangle(lb, radius=r, fill=hl_fill))
@@ -601,6 +608,7 @@ class MapRenderer:
         panel = [x - S*4, y - S*4,
                  x + bar_w + S*4,
                  y + bar_h + S*16 + S*4]
+        # Panel background is translucent through composite_patch
         _composite_patch(canvas, panel, lambda pd, lb: pd.rounded_rectangle(lb, radius=S*4, fill=bg_c, outline=frame_c, width=max(1, S)))
 
         # Gradient bar
