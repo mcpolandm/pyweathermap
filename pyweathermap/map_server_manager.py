@@ -1,11 +1,10 @@
 import time
 import threading
+import gc
 import pyweathermap.getting_traffic as datasource
 from pyweathermap.renderer import MapRenderer
 import pyweathermap.switch_registration as registration
 import pyweathermap.config as snmp_config
-
-
 
 # Resolves name/IP into (group_id, canonical_name, switches).
 def resolve(registry, name):
@@ -42,6 +41,7 @@ def get_filtered_png(entry):
         if entry["updated"] == updated:  # still current; don't clobber a newer render
             entry["png_filtered"] = png
             entry["png_filtered_for"] = updated
+    gc.collect()
     return png
 
 # Builds a fresh WeatherMap for this group and stores it in the map entry.
@@ -56,6 +56,7 @@ def build(app, registry, group_id, switches, traffic_interval, notice_url, secon
             entry["png"] = png
             entry["updated"] = time.time()
             entry["status"] = "ready"
+        gc.collect()
         if start_loop:
             with app.config["NOTICES_LOCK"]:
                 app.config["NOTICES"].append({
@@ -154,6 +155,7 @@ def traffic_update_loop(app, registry, group_id, switches, notice_url, interval=
                 # Render updated WeatherMap diagram and refresh update time.
                 entry["png"] = MapRenderer(wm, show_labels=False).render_to_bytes("PNG")
                 entry["updated"] = time.time()
+        gc.collect()
 
         cycle += 1
         if cycle % 3 == 0:

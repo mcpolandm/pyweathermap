@@ -153,6 +153,19 @@ def format_bandwidth(bps: float) -> str:
         return f"{bps/1e3:.1f}K"
     return f"{bps:.0f}"
 
+def _composite_patch(canvas, box, draw_fn):
+    """For translucent content. Draws onto a transparent patch sized to box, in patch-local coordinates."""
+    x0, y0, x1, y1 = (int(round(v)) for v in box)
+    x0, y0 = max(x0, 0), max(y0, 0)
+    x1, y1 = min(x1, canvas.width), min(y1, canvas.height)
+    if x1 <= x0 or y1 <= y0:
+        return
+    patch = Image.new("RGBA", (x1 - x0, y1 - y0), (0, 0, 0, 0))
+    draw_fn(ImageDraw.Draw(patch), (0, 0, x1 - x0, y1 - y0))
+    under = canvas.crop((x0, y0, x1, y1))
+    canvas.paste(Image.alpha_composite(under, patch), (x0, y0))
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Main renderer class
 # ──────────────────────────────────────────────────────────────────────────────
@@ -181,34 +194,27 @@ class MapRenderer:
 
     # ── Layer 1: Background ────────────────────────────────────────────
         canvas = Image.new("RGBA", (sw, sh), bg_rgba)
+        draw = ImageDraw.Draw(canvas)
 
     # ── Layer 2: Links ─────────────────────────────────────────────────
-        link_layer = Image.new("RGBA", (sw, sh), (0, 0, 0, 0))
-        self._draw_links(ImageDraw.Draw(link_layer), S)
-        canvas = Image.alpha_composite(canvas, link_layer)
+        self._draw_links(draw, S)
         if self._show_labels:
-            bw_layer = Image.new("RGBA", (sw, sh), (0, 0, 0, 0))
-            self._draw_bw_labels_all(ImageDraw.Draw(bw_layer), S)
-            canvas = Image.alpha_composite(canvas, bw_layer)
+            self._draw_bw_labels_all(canvas, draw, S)
 
     # ── Layer 3: Node shadows ──────────────────────────────────────────
         shadow_layer = Image.new("RGBA", (sw, sh), (0, 0, 0, 0))
         self._draw_node_shadows(ImageDraw.Draw(shadow_layer), S)
         shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(radius=S * 6))
         canvas = Image.alpha_composite(canvas, shadow_layer)
+        draw = ImageDraw.Draw(canvas)
 
     # ── Layer 4: Nodes ─────────────────────────────────────────────────
-        node_layer = Image.new("RGBA", (sw, sh), (0, 0, 0, 0))
-        self._draw_nodes(ImageDraw.Draw(node_layer), S)
-        canvas = Image.alpha_composite(canvas, node_layer)
+        self._draw_nodes(canvas, draw, S)
 
     # ── Layer 5 & 6: Labels + HUD ──────────────────────────────────────
-        hud_layer = Image.new("RGBA", (sw, sh), (0, 0, 0, 0))
-        hud_draw = ImageDraw.Draw(hud_layer)
-        self._draw_node_labels_all(hud_draw, S)
-        self._draw_gradient_legend(hud_draw, self.wmap.scale, 12*S, 12*S, "Traffic Load", S)
-        self._draw_title(hud_draw, S)
-        canvas = Image.alpha_composite(canvas, hud_layer)
+        self._draw_node_labels_all(draw, S)
+        self._draw_gradient_legend(canvas, draw, self.wmap.scale, 12*S, 12*S, "Traffic Load", S)
+        self._draw_title(draw, S)
 
     # ── Downscale ──────────────────────────────────────────────────────
         result = canvas.resize((m.width, m.height), Image.LANCZOS)
@@ -217,7 +223,7 @@ class MapRenderer:
     # Encodes to in-memory byte buffer to save without intermediate file.
     def render_to_bytes(self, fmt: str = "PNG") -> bytes:
         buf = io.BytesIO()
-        self.render().save(buf, format=fmt)
+        self.render().save(buf, format=fmt, optimize=True)
         return buf.getvalue()
 
     # Iterates through nodes to find those with a set infourl field.
@@ -412,7 +418,7 @@ class MapRenderer:
 
     # Draws icon based on icon_type, and fill based on node_type.
     # Gives black outline and top highlight.
-    def _draw_nodes(self, draw: ImageDraw.ImageDraw, S: int):
+    def _draw_nodes(self, canvas: Image.Image, draw: ImageDraw.ImageDraw, S: int):
         for node in self.wmap.nodes.values():
             _, _, w2, h2, box = self._node_box(node, S)
 
@@ -420,28 +426,27 @@ class MapRenderer:
 
             outline_c = Color(0, 0, 0).as_tuple()
             ol_w = max(1, S)
+            radius = max(2, min(S * 10, w2 // 3)) if node.icon_type == "rbox" else None
 
             if node.icon_type == "rbox":
-                radius = max(2, min(S * 10, w2 // 3))
-                draw.rounded_rectangle(box, radius=radius, fill=fill+(255,),
-                                       outline=outline_c+(255,), width=ol_w)
-                # Top-light rim (inner rounded rect, top portion)
-                inner = [box[0]+S*2, box[1]+S*2, box[2]-S*2, box[1]+h2-S*2]
-                if inner[2] > inner[0] and inner[3] > inner[1]:
-                    draw.rounded_rectangle(inner, radius=max(1, radius-S*2),
-                                           fill=_lighten(fill, 0.30)+(180,))
-
+                draw.rounded_rectangle(box, radius=radius, fill=fill+(255,),outline=outline_c+(255,), width=ol_w)
             else:
                 draw.rectangle(box, fill=fill+(255,), outline=outline_c+(255,), width=ol_w)
-                inner = [box[0]+S*2, box[1]+S*2, box[2]-S*2, box[1]+h2-S*2]
-                if inner[2] > inner[0] and inner[3] > inner[1]:
-                    draw.rectangle(inner, fill=_lighten(fill, 0.30)+(180,))
+
+            inner = [box[0]+S*2, box[1]+S*2, box[2]-S*2, box[1]+h2-S*2]
+            if inner[2] > inner[0] and inner[3] > inner[1]:
+                hl_fill = _lighten(fill, 0.30) + (180,)
+                if node.icon_type == "rbox":
+                    hl_radius = max(1, radius - S*2)
+                    _composite_patch(canvas, inner, lambda pd, lb, r=hl_radius: pd.rounded_rectangle(lb, radius=r, fill=hl_fill))
+                else:
+                    _composite_patch(canvas, inner, lambda pd, lb: pd.rectangle(lb, fill=hl_fill))
 
 # ── BW labels ────────────────────────────────────────────────────────────────
 
     # Helper for _draw_bw_labels_all
     # Draws rounded pill box and text centered at (cx, cy).
-    def _pill_label(self, draw: ImageDraw.ImageDraw, cx: int, cy: int, text: str,
+    def _pill_label(self, canvas: Image.Image, draw: ImageDraw.ImageDraw, cx: int, cy: int, text: str,
                     font, text_color, bg_color, border_color=None, S=1):
         bbox = draw.textbbox((0, 0), text, font=font)
         tw, th = bbox[2]-bbox[0], bbox[3]-bbox[1]
@@ -451,10 +456,9 @@ class MapRenderer:
         rw = rx + tw + pad_x * 2
         rh = ry + th + pad_y * 2
         radius = (rh - ry) // 2
-        draw.rounded_rectangle([rx, ry, rw, rh], radius=radius,
-                                fill=bg_color,
-                                outline=border_color or bg_color,
-                                width=max(1, S))
+        stroke = max(1, S)
+        _composite_patch(canvas, (rx, ry, rw, rh), lambda pd, lb: pd.rounded_rectangle(
+            lb, radius=radius, fill=bg_color, outline=border_color or bg_color, width=stroke))
         draw.text((cx - tw//2, cy - th//2), text, font=font, fill=text_color)
         return rx // S, ry // S, rw // S, rh // S # to save for HTML hover
 
@@ -490,7 +494,7 @@ class MapRenderer:
     # Uses geometry to find intial points (25% and 75%), uses _safe_label_t
     # to find safe final positions.
     # Places pill box and label for both in and out.
-    def _draw_bw_labels_all(self, draw: ImageDraw.ImageDraw, S: int):
+    def _draw_bw_labels_all(self, canvas: Image.Image, draw: ImageDraw.ImageDraw, S: int):
         placed_positions = []
         for link in self.wmap.links.values():
             if link.bandwidth <= 0:
@@ -520,10 +524,10 @@ class MapRenderer:
             out_border = link.out_color.as_tuple() + (255,)
             in_border  = link.in_color.as_tuple()  + (255,)
 
-            link.out_box = self._pill_label(draw,
+            link.out_box = self._pill_label(canvas, draw,
                              int(out_pos[0]*S), int(out_pos[1]*S),
                              _fmt(link.out_bps), _F_BW, txt_c, bg_c, out_border, S)
-            link.in_box = self._pill_label(draw,
+            link.in_box = self._pill_label(canvas, draw,
                              int(in_pos[0]*S), int(in_pos[1]*S),
                              _fmt(link.in_bps), _F_BW, txt_c, bg_c, in_border, S)
 
@@ -580,7 +584,7 @@ class MapRenderer:
     # Draws legend title, a rounded background, and gradient bar located at x,y.
     # Adds tick marks every 25%.
     # Uses WeatherMap MapScale for gradient bar colors.
-    def _draw_gradient_legend(self, draw, scale, x, y, label, S):
+    def _draw_gradient_legend(self, canvas, draw, scale, x, y, label, S):
         bar_w = 300 * S
         bar_h = 26 * S
         radius = bar_h // 2
@@ -597,7 +601,7 @@ class MapRenderer:
         panel = [x - S*4, y - S*4,
                  x + bar_w + S*4,
                  y + bar_h + S*16 + S*4]
-        draw.rounded_rectangle(panel, radius=S*4, fill=bg_c, outline=frame_c, width=max(1,S))
+        _composite_patch(canvas, panel, lambda pd, lb: pd.rounded_rectangle(lb, radius=S*4, fill=bg_c, outline=frame_c, width=max(1, S)))
 
         # Gradient bar
         for i in range(bar_w):
