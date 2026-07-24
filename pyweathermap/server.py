@@ -62,7 +62,9 @@ def map_png_response(entry):
     with entry["lock"]:
         if entry["status"] != "ready":
             abort(404)
-        data = entry["png_filtered"] if hide_non_switches else entry["png"]
+        data = entry["png"]
+    if hide_non_switches:
+        data = manager.get_filtered_png(entry)
     return Response(data, mimetype="image/png")
 
 # Primary creation and operation function called by run_server.

@@ -23,7 +23,26 @@ def resolve_ip(registry, ip, community):
 
 # Helper function to set map entry.
 def new_map_entry():
-    return {"status": "loading", "wmap": None, "png": None, "updated": None, "error": None, "lock": threading.Lock(), "last_viewed": time.time(),}
+    return {
+        "status": "loading", "wmap": None, "png": None, "updated": None, "error": None,
+        "lock": threading.Lock(), "last_viewed": time.time(),
+        "png_filtered": None, "png_filtered_for": None,
+    }
+
+# Gets filtered PNG for a ready map entry.
+def get_filtered_png(entry):
+    with entry["lock"]:
+        wmap, updated = entry["wmap"], entry["updated"]
+        if entry["png_filtered"] is not None and entry["png_filtered_for"] == updated:
+            return entry["png_filtered"]
+
+    png = MapRenderer(wmap.filtered(True), show_labels=False).render_to_bytes("PNG")
+
+    with entry["lock"]:
+        if entry["updated"] == updated:  # still current; don't clobber a newer render
+            entry["png_filtered"] = png
+            entry["png_filtered_for"] = updated
+    return png
 
 # Builds a fresh WeatherMap for this group and stores it in the map entry.
 # Runs in a background thread.
@@ -35,7 +54,6 @@ def build(app, registry, group_id, switches, traffic_interval, notice_url, secon
         with entry["lock"]:
             entry["wmap"] = wmap
             entry["png"] = png
-            entry["png_filtered"] = MapRenderer(wmap.filtered(True), show_labels=False).render_to_bytes("PNG")
             entry["updated"] = time.time()
             entry["status"] = "ready"
         if start_loop:
@@ -133,9 +151,8 @@ def traffic_update_loop(app, registry, group_id, switches, notice_url, interval=
                         continue
                     link.in_bps = max(0, (in2 - in1)) * 8 // elapsed
                     link.out_bps = max(0 ,(out2 - out1)) * 8 // elapsed
-                # Render updated WeatherMap diagram and refresh update time
+                # Render updated WeatherMap diagram and refresh update time.
                 entry["png"] = MapRenderer(wm, show_labels=False).render_to_bytes("PNG")
-                entry["png_filtered"] = MapRenderer(wm.filtered(True), show_labels=False).render_to_bytes("PNG")
                 entry["updated"] = time.time()
 
         cycle += 1
