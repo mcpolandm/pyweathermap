@@ -133,6 +133,52 @@
       0%,100% { opacity: 1; }
       50% { opacity: 0.3; }
     }
+    .permanent-popup {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      max-width: 300px;
+      background: #16213e;
+      color: #eee;
+      border: 1px solid #0f3460;
+      border-radius: 6px;
+      padding: 12px 14px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 900;
+    }
+    .permanent-popup .popup-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .permanent-popup .popup-link {
+      color: #eee;
+      text-decoration: none;
+      border: 1px solid #e94560;
+      background: #e94560;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+    .permanent-popup .popup-link:hover {
+      background: #d13650;
+    }
+    .permanent-popup .popup-dismiss {
+      color: #888;
+      background: transparent;
+      border: 1px solid #0f3460;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .permanent-popup .popup-dismiss:hover {
+      color: #eee;
+    }
   </style>
 </head>
 <body>
@@ -169,6 +215,15 @@
     <span>pyweathermap</span>
   </footer>
   {% include "toast.html" %}
+  {% if existing_url %}
+  <div id="permanent-popup" class="permanent-popup">
+    <span>Permanent path to this device's map is here.</span>
+    <div class="popup-actions">
+      <button class="popup-dismiss" onclick="document.getElementById('permanent-popup').remove()">Dismiss</button>
+      <a class="popup-link" href="{{ existing_url }}">View</a>
+    </div>
+  </div>
+  {% endif %}
   <div id="link-tooltip" class="link-tooltip"></div>
   {% for a in n_areas %}
   <div id="node-tip-{{ loop.index}}" class="tip-source">

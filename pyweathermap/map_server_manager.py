@@ -44,6 +44,18 @@ def get_filtered_png(entry):
     gc.collect()
     return png
 
+# Retrieves /map url for /get IP
+def existing_map_url(app, registry, ip):
+    switch = registry.get(ip)
+    if switch is None:
+        return None
+    group_id = switch.group.lower()
+    entry = app.config["MAPS"].get(group_id)
+    if entry is None or entry["status"] != "ready":
+        return None
+    return f"/map/{switch.name.lower()}"
+
+
 # Builds a fresh WeatherMap for this group and stores it in the map entry.
 # Runs in a background thread.
 def build(app, registry, group_id, switches, traffic_interval, notice_url, seconds=60, start_loop=True, evictable=False):

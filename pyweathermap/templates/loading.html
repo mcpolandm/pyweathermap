@@ -42,6 +42,13 @@
     <p style="font-size:0.85rem;color:#888;margin-top:8px;">
       Sampling live traffic — this page refreshes automatically.
     </p>
+    {% if existing_url %}
+    <p style="margin-top:16px;">
+      <a href="{{ existing_url }}" class="home-link" style="border:1px solid #e94560;padding:6px 12px;border-radius:4px">
+        This map has already been generated here
+      </a>
+    </p>
+    {% endif %}
   </div>
   {% include "toast.html" %}
 </body>

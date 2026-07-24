@@ -23,7 +23,7 @@ import pyweathermap.map_server_manager as manager
 import pyweathermap.switch_registration as registration
 
 # Helper for /get/ and /map/ routes 
-def render_map_page(entry, name, retry_url, map_base, download_name, refresh_interval):
+def render_map_page(entry, name, retry_url, map_base, download_name, refresh_interval, existing_url=None):
     with entry["lock"]:
         status = entry["status"]
         if status == "ready":
@@ -32,7 +32,7 @@ def render_map_page(entry, name, retry_url, map_base, download_name, refresh_int
         error = entry["error"]
 
     if status == "loading":
-        return render_template("loading.html", name=name)
+        return render_template("loading.html", name=name, existing_url=existing_url)
     if status == "error":
         return render_template("error.html", name=name, retry_url=retry_url, error=error), 500
 
@@ -52,8 +52,9 @@ def render_map_page(entry, name, retry_url, map_base, download_name, refresh_int
         map_height=m.height,
         map_base=map_base,
         download_name=download_name,
-        last_updated=datetime.fromtimestamp(last_updated).strftime("%Y-%m-%d %H:%M:%S"), 
-        hide_non_switches=hide_non_switches
+        last_updated=datetime.fromtimestamp(last_updated).strftime("%Y-%m-%d %H:%M:%S"),
+        hide_non_switches=hide_non_switches,
+        existing_url=existing_url
     )
 
 # Helper for /map.png routes
@@ -116,8 +117,9 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
     def show_ip_map(device_ip, device_snmp_community):
         if not registration.is_valid_target(device_ip):
             abort(400)
+        existing_url = manager.existing_map_url(app, app.config["REGISTRY"], device_ip)
         _, entry = manager.get_or_create_ip_map(app, app.config["REGISTRY"], device_ip, device_snmp_community, traffic_interval, startup)
-        return render_map_page(entry, name=device_ip, retry_url=f"/get/{device_ip}/{device_snmp_community}/retry", map_base=f"/get/{device_ip}/{device_snmp_community}", download_name=device_ip, refresh_interval=refresh_interval)
+        return render_map_page(entry, name=device_ip, retry_url=f"/get/{device_ip}/{device_snmp_community}/retry", map_base=f"/get/{device_ip}/{device_snmp_community}", download_name=device_ip, refresh_interval=refresh_interval, existing_url=existing_url)
 
     @app.route("/get/<device_ip>/<device_snmp_community>/retry", methods=["POST"])
     def retry_ip_map(device_ip, device_snmp_community):
