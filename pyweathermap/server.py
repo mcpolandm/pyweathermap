@@ -21,9 +21,10 @@ from markupsafe import escape
 from .renderer import MapRenderer
 import pyweathermap.map_server_manager as manager
 import pyweathermap.switch_registration as registration
+from . import auth
 
 # Helper for /get/ and /map/ routes 
-def render_map_page(entry, name, retry_url, map_base, download_name, refresh_interval, existing_url=None):
+def render_map_page(entry, name, retry_url, map_base, download_name, refresh_interval, existing_url=None, sig=None):
     with entry["lock"]:
         status = entry["status"]
         if status == "ready":
@@ -40,6 +41,10 @@ def render_map_page(entry, name, retry_url, map_base, download_name, refresh_int
     wm_view = m.filtered(hide_non_switches)
 
     n_areas = MapRenderer(wm_view).get_node_areas()
+
+    hns = "1" if hide_non_switches else None
+    base_qs = query_string(sig=sig, hide_non_switches=hns)
+    img_qs = query_string(sig=sig, t=int(time.time()), hide_non_switches=hns)
     return render_template(
         "map.html",
         title=m.title or "Network Weathermap",
@@ -51,6 +56,8 @@ def render_map_page(entry, name, retry_url, map_base, download_name, refresh_int
         map_width=m.width,
         map_height=m.height,
         map_base=map_base,
+        base_qs=base_qs,
+        img_qs=img_qs,
         download_name=download_name,
         last_updated=datetime.fromtimestamp(last_updated).strftime("%Y-%m-%d %H:%M:%S"),
         hide_non_switches=hide_non_switches,
@@ -67,6 +74,17 @@ def map_png_response(entry):
     if hide_non_switches:
         data = manager.get_filtered_png(entry)
     return Response(data, mimetype="image/png")
+
+# authorization helpers for /get
+def require_get_auth(device_ip, device_snmp_community):
+    if not auth.enabled():
+        abort(404) # Auth secret key not set
+    if not auth.verify(device_ip, device_snmp_community, request.args.get("sig", "")):
+        abort(403) # Auth signature incorrect
+
+def query_string(**parts):
+    pairs = [f"{k}={v}" for k, v in parts.items() if v]
+    return ("?" + "&".join(pairs)) if pairs else ""
 
 # Primary creation and operation function called by run_server.
 # Creates Flask app with lazily-built, per-group maps.
@@ -115,24 +133,28 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
     
     @app.route("/get/<device_ip>/<device_snmp_community>")
     def show_ip_map(device_ip, device_snmp_community):
+        require_get_auth(device_ip, device_snmp_community)
+        sig = request.args.get("sig")
         if not registration.is_valid_target(device_ip):
             abort(400)
         existing_url = manager.existing_map_url(app, app.config["REGISTRY"], device_ip)
         _, entry = manager.get_or_create_ip_map(app, app.config["REGISTRY"], device_ip, device_snmp_community, traffic_interval, startup)
-        return render_map_page(entry, name=device_ip, retry_url=f"/get/{device_ip}/{device_snmp_community}/retry", map_base=f"/get/{device_ip}/{device_snmp_community}", download_name=device_ip, refresh_interval=refresh_interval, existing_url=existing_url)
+        return render_map_page(entry, name=device_ip, retry_url=f"/get/{device_ip}/{device_snmp_community}/retry{query_string(sig=sig)}", map_base=f"/get/{device_ip}/{device_snmp_community}", download_name=device_ip, refresh_interval=refresh_interval, existing_url=existing_url, sig=sig)
 
     @app.route("/get/<device_ip>/<device_snmp_community>/retry", methods=["POST"])
     def retry_ip_map(device_ip, device_snmp_community):
+        require_get_auth(device_ip, device_snmp_community)
         if not registration.is_valid_target(device_ip):
             abort(400)
         manager.retry_map(
             app, app.config["REGISTRY"], traffic_interval, startup,
             ip=device_ip, community=device_snmp_community,
         )
-        return redirect(f"/get/{device_ip}/{device_snmp_community}")
+        return redirect(f"/get/{device_ip}/{device_snmp_community}{query_string(sig=request.args.get('sig'))}")
     
     @app.route("/get/<device_ip>/<device_snmp_community>/map.png")
     def get_ip_map_png(device_ip, device_snmp_community):
+        require_get_auth(device_ip, device_snmp_community)
         if not registration.is_valid_target(device_ip):
             abort(400)
         _, entry = manager.get_or_create_ip_map(

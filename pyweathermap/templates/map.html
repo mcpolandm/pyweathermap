@@ -191,12 +191,12 @@
         Hide non-switches
       </label>
       <span class="meta"><span class="dot"></span>Auto-refreshes every {{ interval }}s</span>
-      <a class="download-link" href="{{ map_base }}/map.png{% if hide_non_switches %}?hide_non_switches=1{% endif %}" download="{{ download_name }}-weathermap.png">Download PNG</a>
+      <a class="download-link" href="{{ map_base }}/map.png{{ base_qs }}" download="{{ download_name }}-weathermap.png">Download PNG</a>
     </div>
   </header>
   <div class="map-wrap">
     <div class="image-frame">
-      <img src="{{ map_base }}/map.png?t={{ ts }}{% if hide_non_switches %}&hide_non_switches=1{% endif %}" alt="Network Weathermap">
+      <img src="{{ map_base }}/map.png{{ img_qs }}" alt="Network Weathermap">
       {% for a in n_areas %}
       <a class="node-link{% if not a.url%} no-link{% endif %}"
          style="left:{{ (a.x1 / map_width * 100) }}%; top:{{ (a.y1 / map_height * 100) }}%; width:{{ ((a.x2 - a.x1) / map_width * 100) }}%; height:{{ ((a.y2 - a.y1) / map_height * 100) }}%;"
