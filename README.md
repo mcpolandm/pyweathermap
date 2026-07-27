@@ -49,6 +49,7 @@ The Flask server includes a few routes to navigate between WeatherMaps easily.
  - index (/): The base landing page, includes a name/IP dropdown of available switches from the switch list.
  - map (/map/{switch_name_or_IP}): The page where WeatherMaps are created or retrieved and then displayed. Updates continuously.
  - image (/map/{switch_name_or_IP}/map.png): Just displays the WeatherMap render
+ - known switch get (/get/{switch_IP}?sig=): Same as /map for any switch on LibreNMS (LibreNMS API gives SNMP community). Not accessible from index. Requires a signature to be accessed that can be formed from the PYWEATHERMAP_GET_SECRET to ensure data security.
  - unknown switch get (/get/{switch_IP}/{switch_snmp_community}?sig=): Same as /map, but for switches not in the switch list. Not accessible from index. Requires a signature to be accessed that can be formed from the PYWEATHERMAP_GET_SECRET to ensure data security.
  - loading: displayed at the /map or /get route when the WeatherMap is under construction.
  - error: displayed at the /map or /get route when WeatherMap creation fails.
