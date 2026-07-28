@@ -103,7 +103,8 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
     @app.route("/")
     def root():
         switches = registration.get_all_switches(registry)
-        return render_template("index.html", switches=switches)
+        groups = registration.get_named_groups(registry)
+        return render_template("index.html", switches=switches, groups=groups)
     
     @app.route("/goto")
     def goto():

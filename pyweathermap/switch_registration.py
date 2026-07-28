@@ -39,6 +39,14 @@ def get_group_members(registry, group):
     unique_switches = dict.fromkeys(registry.values())
     return [switch for switch in unique_switches if switch.group == group]
 
+def get_named_groups(registry):
+    unique_switches = dict.fromkeys(registry.values())
+    groups = {}
+    for switch in unique_switches:
+        groups.setdefault(switch.group, []).append(switch)
+    named_groups = [(group, min(members, key=lambda s: s.name.lower()).name) for group, members in groups.items() if len(members) > 1]
+    return sorted(named_groups, key=lambda pair: pair[0].lower())
+
 def get_all_switches(registry):
     unique_switches = dict.fromkeys(registry.values())
     return sorted({(switch.name, switch.ip) for switch in unique_switches}, key=lambda pair: pair[0].lower())

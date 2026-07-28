@@ -40,6 +40,44 @@
       align-items: center;
       gap: 16px;
     }
+    .layout {
+      position: relative;
+    }
+    .quick-links {
+      position: absolute;
+      top: 0;
+      left: 100%;
+      margin-left: 24px;
+      background: #16213e;
+      border: 1px solid #0f3460;
+      border-radius: 8px;
+      padding: 20px 24px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+      text-align: left;
+      min-width: 160px;
+    }
+    .quick-links h2 {
+      font-size: 0.8rem;
+      color: #e94560;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+    .quick-links ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .quick-links a {
+      color: #eee;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    .quick-links a:hover { color: #e94560; }
+
 
     h1 { font-size: 1.3rem; color: #e94560; margin-bottom: 20px; }
     select, button {
@@ -64,20 +102,21 @@
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Network Weathermap</h1>
-    <div class="toggle">
-      <label><input type="radio" name="display_mode" value="name" checked> Name</label>
-      <label><input type="radio" name="display_mode" value="ip"> IP</label>
-    </div>
-    <form action="/goto" method="get">
-      <select name="switch" id="switch-select">
-        {% for name, ip in switches %}
-        <option value="{{ name }}" data-name="{{ name }}" data-ip="{{ ip }}">{{ name }}</option>
-        {% endfor %}
-      </select>
-      <button type="submit">View Map</button>
-    </form>
+  <div class="layout">
+    <div class="card">
+      <h1>Network Weathermap</h1>
+      <div class="toggle">
+        <label><input type="radio" name="display_mode" value="name" checked> Name</label>
+        <label><input type="radio" name="display_mode" value="ip"> IP</label>
+      </div>
+      <form action="/goto" method="get">
+        <select name="switch" id="switch-select">
+          {% for name, ip in switches %}
+          <option value="{{ name }}" data-name="{{ name }}" data-ip="{{ ip }}">{{ name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit">View Map</button>
+      </form>
 <script>
   document.querySelectorAll('input[name="display_mode"]').forEach(radio => {
     radio.addEventListener('change', e => {
@@ -95,6 +134,17 @@
   });
 </script>
 
+    </div>
+    {% if groups %}
+    <div class="quick-links">
+      <h2>Group Maps</h2>
+      <ul>
+        {% for group_name, rep_name in groups %}
+        <li><a href="/map/{{ rep_name|lower }}">{{ group_name }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
   </div>
   {% include "toast.html" %}
 </body>
