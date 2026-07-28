@@ -43,6 +43,7 @@ class MapNode:
     icon_width: int = 44
     icon_height: int = 22
     icon_type: str = "box"
+    lldp: bool = True
     infourl: Optional[str] = None # only set for undug switches (links to other WeatherMaps)
     ip: Optional[str] = None # only set for switches
     community: Optional[str] = None # only set for switches
@@ -107,16 +108,25 @@ class WeatherMap:
     scale: MapScale = field(default_factory=_default_scale)
     no_lldp_switches: set = field(default_factory=set) # center switch names whose neighbor names are unknown
 
-    def filtered(self, hide_non_switches: bool) -> "WeatherMap":
-        if not hide_non_switches:
+    def filtered(self, hide_non_switches: bool, hide_non_lldp: bool = False) -> "WeatherMap":
+        if not hide_non_switches and not hide_non_lldp:
             return self
 
         from . import layout
 
-        kept_nodes = {
-            name for name, node in self.nodes.items()
-            if node.node_type in ("switch", "endpoint/switch")
-        }
+        def keep(node) -> bool:
+            ok = True
+            if hide_non_switches:
+                ok = ok and node.node_type in ("switch", "endpoint/switch")
+            if hide_non_lldp:
+                ok = ok and (node.lldp or node.node_type == "switch")
+            return ok
+
+        kept_nodes = {name for name, node in self.nodes.items() if keep(node)}
+
+        # Switches with no LLDP replies at all have nothing but placeholder neighbors;
+        # always show them so such a switch never renders with zero connections,
+        # regardless of which toggle(s) triggered the pruning above.
         for link in self.links.values():
             if link.node1 in self.no_lldp_switches or link.node2 in self.no_lldp_switches:
                 kept_nodes.add(link.node1)

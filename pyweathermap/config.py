@@ -24,8 +24,10 @@ def create_nodes_and_links(wm, df, switch, registry, switches):
         matched = match_registry_name(device_name, registry, switches)
         if matched:
             device_name = registry[matched].name
+        elif not row.get("lldp", True):
+            device_name = f"{switch.name}:{device_name}"
         if device_name not in wm.nodes:
-            wm.nodes[device_name] = MapNode(name=device_name, label=device_name)
+            wm.nodes[device_name] = MapNode(name=device_name, label=device_name, lldp=bool(row.get("lldp", True)))
             if matched:
                 wm.nodes[device_name].infourl = f"/map/{matched}"
                 wm.nodes[device_name].node_type = "endpoint/switch"

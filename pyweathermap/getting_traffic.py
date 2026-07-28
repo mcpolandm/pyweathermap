@@ -156,10 +156,12 @@ def get_traffic(ip, community, seconds=300, interfaces=None):
                 f"Interfaces in file: {sorted(df_csv['interface'])}."
             )
         df = merged
+        df["lldp"] = True
     else:
         output_remote = subprocess.run(['snmpbulkwalk', '-On', '-v2c', '-c', community, "--", ip, ".1.0.8802.1.1.2.1.4.1.1.9"], capture_output=True, text=True).stdout
         if len(output_remote) == 0 or "at this OID" in output_remote or "No more variables left" in output_remote:
             df["sysname"] = df["interface"]
+            df["lldp"] = False
             df.attrs["lldp_known"] = False
         else:
             get_lldp_neighbors(ip, community, df)
@@ -171,7 +173,8 @@ def get_traffic(ip, community, seconds=300, interfaces=None):
                     f"Local interfaces seen: {sorted(df['interface'])}. "
                     f"Columns collected so far: {list(df.columns)}."
                 )
-            df = df.dropna(subset=["sysname"])
+            df["lldp"] = df["sysname"].notna()
+            df["sysname"] = df["sysname"].fillna(df["interface"])
     
     bw_table = snmp_bulk_table(ip, community, _OID_SPEED)
     df['Bandwidth'] = df['index'].map(bw_table)
@@ -208,6 +211,8 @@ def get_traffic(ip, community, seconds=300, interfaces=None):
     df['In Diff'] = (df['In Diff'] * 8)//seconds
     df['Out Diff'] = (df['Out Diff'] * 8)//seconds
 
+    if df.attrs.get("lldp_known", True):
+        df = df[df["lldp"] | (df["In Diff"] != 0) | (df["Out Diff"] != 0)]
     return df
 
 
