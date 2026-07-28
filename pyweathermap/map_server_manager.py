@@ -98,7 +98,7 @@ def get_or_create_map(app, registry, name, traffic_interval, startup):
         if entry is None:
             entry = new_map_entry()
             app.config["MAPS"][group_id] = entry
-            threading.Thread(target=build, args=(app, registry, group_id, switches, traffic_interval, f"/map/{group_id}"), kwargs={"seconds": startup}, daemon=True).start()
+            threading.Thread(target=build, args=(app, registry, group_id, switches, traffic_interval, f"/map/{switches[0].name.lower()}"), kwargs={"seconds": startup}, daemon=True).start()
     return group_id, entry
 
 def get_or_create_ip_map(app, registry, ip, community, traffic_interval, startup):
@@ -122,7 +122,7 @@ def retry_map(app, registry, traffic_interval, startup, name=None, ip=None, comm
         evictable = True
     else:
         group_id, _, switches = resolve(registry, name)
-        notice_url = f"/map/{group_id}"
+        notice_url = f"/map/{switches[0].name.lower()}"
         evictable = False
 
     with app.config["MAPS_LOCK"]:
