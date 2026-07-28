@@ -135,7 +135,8 @@ class WeatherMap:
         if kept_nodes == set(self.nodes):
             return self
 
-        new_nodes = {name: replace(self.nodes[name], x=None, y=None) for name in kept_nodes}
+        new_nodes = {name: replace(self.nodes[name], x=None, y=None) for name in self.nodes if name in kept_nodes}
+
         new_links = {
             name: link for name, link in self.links.items()
             if link.node1 in kept_nodes and link.node2 in kept_nodes
