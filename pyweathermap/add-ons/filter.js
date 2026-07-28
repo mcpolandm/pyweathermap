@@ -68,6 +68,10 @@
     }
   `;
 
+  function normalizeNumeric(str) {
+    return str.replace(/^0+(?=\d)/, '');
+  }
+
   function parseSwitchName(name) {
     // USER EDITS HERE:
     // Include matching schemes for building name, rack number, and shelf number.
@@ -79,8 +83,8 @@
     const shelfMatch = upper.match();
     return {
       building,
-      rack: rackMatch ? rackMatch[1] : null,
-      shelf: shelfMatch ? shelfMatch[1] : null,
+      rack: rackMatch ? normalizeNumeric(rackMatch[1]) : null,
+      shelf: shelfMatch ? normalizeNumeric(shelfMatch[1]) : null,
     };
   }
 
