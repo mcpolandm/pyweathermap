@@ -39,13 +39,15 @@ def render_map_page(entry, name, retry_url, map_base, download_name, refresh_int
         return render_template("error.html", name=name, retry_url=retry_url, error=error), 500
 
     hide_non_switches = request.args.get("hide_non_switches") == "1"
-    wm_view = m.filtered(hide_non_switches)
+    hide_non_lldp = request.args.get("hide_non_lldp") == "1"
+    wm_view = m.filtered(hide_non_switches, hide_non_lldp)
 
     n_areas = MapRenderer(wm_view).get_node_areas()
 
     hns = "1" if hide_non_switches else None
-    base_qs = query_string(sig=sig, hide_non_switches=hns)
-    img_qs = query_string(sig=sig, t=int(time.time()), hide_non_switches=hns)
+    hnl = "1" if hide_non_lldp else None
+    base_qs = query_string(sig=sig, hide_non_switches=hns, hide_non_lldp=hnl)
+    img_qs = query_string(sig=sig, t=int(time.time()), hide_non_switches=hns, hide_non_lldp=hnl)
     return render_template(
         "map.html",
         title=m.title or "Network Weathermap",
@@ -62,18 +64,20 @@ def render_map_page(entry, name, retry_url, map_base, download_name, refresh_int
         download_name=download_name,
         last_updated=datetime.fromtimestamp(last_updated).strftime("%Y-%m-%d %H:%M:%S"),
         hide_non_switches=hide_non_switches,
+        hide_non_lldp=hide_non_lldp,
         existing_url=existing_url
     )
 
 # Helper for /map.png routes
 def map_png_response(entry):
     hide_non_switches = request.args.get("hide_non_switches") == "1"
+    hide_non_lldp = request.args.get("hide_non_lldp") == "1"
     with entry["lock"]:
         if entry["status"] != "ready":
             abort(404)
         data = entry["png"]
-    if hide_non_switches:
-        data = manager.get_filtered_png(entry)
+    if hide_non_switches or hide_non_lldp:
+        data = manager.get_filtered_png(entry, hide_non_switches, hide_non_lldp)
     return Response(data, mimetype="image/png")
 
 # authorization helpers for /get

@@ -102,6 +102,11 @@
     .home-link:hover {
       text-decoration: underline;
     }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
     .header-right {
       justify-self: end;
       display: flex;
@@ -183,14 +188,20 @@
 </head>
 <body>
   <header>
-    <a href="/" class="home-link">← Home</a>
+    <div class="header-left">
+      <a href="/" class="home-link">← Home</a>
+      <span class="meta"><span class="dot"></span>Auto-refreshes every {{ interval }}s</span>
+    </div>
     <h1>{{ title or "Network Weathermap" }}</h1>
     <div class="header-right">
       <label class="toggle-switches">
         <input type="checkbox" id="hide-non-switches" {% if hide_non_switches %}checked{% endif %}>
         Hide non-switches
       </label>
-      <span class="meta"><span class="dot"></span>Auto-refreshes every {{ interval }}s</span>
+      <label class="toggle-switches">
+        <input type="checkbox" id="hide-non-lldp" {% if hide_non_lldp %}checked{% endif %}>
+        Hide non-LLDP links
+      </label>
       <a class="download-link" href="{{ map_base }}/map.png{{ base_qs }}" download="{{ download_name }}-weathermap.png">Download PNG</a>
     </div>
   </header>
@@ -280,6 +291,15 @@
         url.searchParams.set('hide_non_switches', '1');
       } else {
         url.searchParams.delete('hide_non_switches');
+      }
+      window.location = url;
+    });
+    document.getElementById('hide-non-lldp').addEventListener('change', (e) => {
+      const url = new URL(window.location);
+      if (e.target.checked) {
+        url.searchParams.set('hide_non_lldp', '1');
+      } else {
+        url.searchParams.delete('hide_non_lldp');
       }
       window.location = url;
     });
