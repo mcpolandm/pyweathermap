@@ -8,7 +8,7 @@ Inspired by [Network Weathermap](https://network-weathermap.com/) (PHP), re-impl
 
 ## Quick start
 
-This project requires Python version 3.8 and above, though 3.9 is recommended. Full functionality is confirmed for version 3.11 and above.
+This project requires Python version 3.10. Full functionality is confirmed for version 3.11 and above.
 
 ```bash
 # Install dependencies
@@ -36,7 +36,7 @@ python main.py
 python main.py --center switch3
 
 # Render + start the web server at http://127.0.0.1:8888
-python main.py --serve
+python main.py --server
 
 # Render to a specific name PNG
 python3 main.py --output inventory/image.png
@@ -63,7 +63,9 @@ The Flask server includes a few routes to navigate between WeatherMaps easily.
 | `--host` | `127.0.0.1` | Web server bind address |
 | `--port`, `-p` | `8888` | Web server port |
 | `--refresh` | `60` | Browser auto-refresh interval (seconds) |
-| `--traffic` | `300` | Traffic data auto-refresh interval (seconds) | 
+| `--traffic` | `300` | Traffic data auto-refresh interval (seconds) |
+| `--startup` | `60` | Wait for initial traffic load |
+| `--center` | None | Default center switch for server, or the switch to display in non-server run |
 
 ---
 
@@ -80,6 +82,9 @@ where:
  - FILE represents a csv file with one column of interface names and one column of connected device names. To use LLDP, input NONE here. Use this file for switches with LLDP disabled.
  - GROUP represents a group name for switches to be displayed together. Any switches with the same group name will be displayed in the same diagram. Switches with no group name will simply be shown alone.
 
+ File header line:
+ interface,sysname
+ 
  Example line from FILE:
  eth0,device1
 
@@ -89,9 +94,9 @@ Each map is drawn onto a single RGBA canvas at 2× resolution and downscaled wit
 
 1. **Background** — solid fill
 2. **Links** — each link is two fat arrows meeting at the split point. The arrow from node 1 toward the midpoint is coloured by *out* utilisation; the arrow from node 2 toward the midpoint is coloured by *in* utilisation. Colours come from the active `SCALE`.
-3. **Node shadows** — soft Gaussian drop-shadows behind each node shape. This is done on a new layer.
-4. **Nodes** — filled shapes (`box`, `rbox`, `round`) with a top-light highlight.
-5. **Bandwidth labels** — pill-shaped labels on each arrow half showing the current throughput.
+3. **Bandwidth labels** — pill-shaped labels on each arrow half showing the current throughput.
+4. **Node shadows** — soft Gaussian drop-shadows behind each node shape. This is done on a new layer.
+5. **Nodes** — filled shapes (`box`, `rbox`, `round`) with a top-light highlight.
 6. **Legend + Title + timestamp** — a continuous gradient bar showing 0–100 % with tick marks.
 
 Opaque elements are drawn straight onto the canvas. The few translucent ones are alpha-blended in through a small patch sized to just that element to lessen memory per render.
@@ -111,6 +116,13 @@ pyweathermap/
 │   ├── simple.txt              Example switch file (One switch)
 │   └── simple.png              Example output (7 nodes, 7 links)
 └── pyweathermap/
+    ├── templates/
+    │   ├── base.html           Default styling
+    │   ├── error.html          For /map or /get errors
+    │   ├── index.html          Landing page
+    │   ├── loading.html        When map is under construction
+    │   ├── map.html            For /map and /get
+    │   └── toast.html          Defines pop-ups 
     ├── auth.py                 Verifies authorization for /get route
     ├── config.py               Creates WeatherMap objects from switch registry
     ├── getting_traffic.py      Collects collection details for one switch
