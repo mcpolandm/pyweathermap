@@ -511,9 +511,6 @@ class MapRenderer:
                 continue
             full_path, _ = geo
 
-            def _fmt(bps):
-                return format_bandwidth(bps) + "bps"
-
             # Find safe out position
             n1 = self.wmap.nodes[link.node1]
             n2 = self.wmap.nodes[link.node2]
@@ -533,10 +530,10 @@ class MapRenderer:
 
             link.out_box = self._pill_label(canvas, draw,
                              int(out_pos[0]*S), int(out_pos[1]*S),
-                             _fmt(link.out_bps), _F_BW, txt_c, bg_c, out_border, S)
+                             format_bandwidth(link.out_bps) + "bps", _F_BW, txt_c, bg_c, out_border, S)
             link.in_box = self._pill_label(canvas, draw,
                              int(in_pos[0]*S), int(in_pos[1]*S),
-                             _fmt(link.in_bps), _F_BW, txt_c, bg_c, in_border, S)
+                             format_bandwidth(link.in_bps) + "bps", _F_BW, txt_c, bg_c, in_border, S)
 
 # ── Node labels ──────────────────────────────────────────────────────────────
 

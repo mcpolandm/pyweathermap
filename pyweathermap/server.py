@@ -86,6 +86,13 @@ def require_get_auth(device_ip, device_snmp_community=None):
         abort(404) # Auth secret key not set
     if not auth.verify(device_ip, device_snmp_community, request.args.get("sig", "")):
         abort(403) # Auth signature incorrect
+    if not registration.is_valid_target(device_ip):
+        abort(400) # IP is invalid
+    if device_snmp_community is None:
+        community = libre.get_device_community(device_ip)
+        if community is None:
+            abort(502) # Community not found
+        return community
 
 # crafts query string for links
 def query_string(**parts):
@@ -140,12 +147,7 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
     # Defines unlisted /get route to build map from IP, retrieving community from LibreNMS
     @app.route("/get/<device_ip>")
     def show_ip_map_api(device_ip):
-        require_get_auth(device_ip)
-        if not registration.is_valid_target(device_ip):
-            abort(400)
-        community = libre.get_device_community(device_ip)
-        if community is None:
-            abort(502)
+        community = require_get_auth(device_ip)
         sig = request.args.get("sig")
         existing_url = manager.existing_map_url(app, app.config["REGISTRY"], device_ip)
         _, entry = manager.get_or_create_ip_map(app, app.config["REGISTRY"], device_ip, community, traffic_interval, startup)
@@ -154,24 +156,14 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
     # Defines /get retry
     @app.route("/get/<device_ip>/retry", methods=["POST"])
     def retry_ip_map_api(device_ip):
-        require_get_auth(device_ip)
-        if not registration.is_valid_target(device_ip):
-            abort(400)
-        community = libre.get_device_community(device_ip)
-        if community is None:
-            abort(502)
+        community = require_get_auth(device_ip)
         manager.retry_map(app, app.config["REGISTRY"], traffic_interval, startup, ip=device_ip, community=community)
         return redirect(f"/get/{device_ip}{query_string(sig=request.args.get('sig'))}")
 
     # Defines /get image display
     @app.route("/get/<device_ip>/map.png")
     def get_ip_map_png_api(device_ip):
-        require_get_auth(device_ip)
-        if not registration.is_valid_target(device_ip):
-            abort(400)
-        community = libre.get_device_community(device_ip)
-        if community is None:
-            abort(502)
+        community = require_get_auth(device_ip)
         _, entry = manager.get_or_create_ip_map(app, app.config["REGISTRY"], device_ip, community, traffic_interval, startup)
         return map_png_response(entry)
 
@@ -180,8 +172,6 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
     def show_ip_map(device_ip, device_snmp_community):
         require_get_auth(device_ip, device_snmp_community)
         sig = request.args.get("sig")
-        if not registration.is_valid_target(device_ip):
-            abort(400)
         existing_url = manager.existing_map_url(app, app.config["REGISTRY"], device_ip)
         _, entry = manager.get_or_create_ip_map(app, app.config["REGISTRY"], device_ip, device_snmp_community, traffic_interval, startup)
         return render_map_page(entry, name=device_ip, retry_url=f"/get/{device_ip}/{device_snmp_community}/retry{query_string(sig=sig)}", map_base=f"/get/{device_ip}/{device_snmp_community}", download_name=device_ip, refresh_interval=refresh_interval, existing_url=existing_url, sig=sig)
@@ -190,8 +180,6 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
     @app.route("/get/<device_ip>/<device_snmp_community>/retry", methods=["POST"])
     def retry_ip_map(device_ip, device_snmp_community):
         require_get_auth(device_ip, device_snmp_community)
-        if not registration.is_valid_target(device_ip):
-            abort(400)
         manager.retry_map(
             app, app.config["REGISTRY"], traffic_interval, startup,
             ip=device_ip, community=device_snmp_community,
@@ -202,8 +190,6 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
     @app.route("/get/<device_ip>/<device_snmp_community>/map.png")
     def get_ip_map_png(device_ip, device_snmp_community):
         require_get_auth(device_ip, device_snmp_community)
-        if not registration.is_valid_target(device_ip):
-            abort(400)
         _, entry = manager.get_or_create_ip_map(
             app, app.config["REGISTRY"], device_ip, device_snmp_community, traffic_interval, startup
         )
