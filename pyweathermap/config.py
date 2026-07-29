@@ -47,7 +47,7 @@ def config_from_snmp(registry, switches, seconds=60):
         return datasource.get_traffic(sw.ip, sw.community, seconds)
 
     # Thread execution of get_traffic for each switch to keep data as accurate as possible
-    with ThreadPoolExecutor() as pool:
+    with ThreadPoolExecutor(max_workers=100) as pool:
         dataframes = list(pool.map(get_traffic_for_switch, switches))
 
     wm = WeatherMap(title=f"Network Map {switches[0].group}")
