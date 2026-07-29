@@ -1,11 +1,29 @@
 <!DOCTYPE html>
 <html>
-<head><a href="/" style="color:#e94560; text-decoration:none;">← Home</a><meta charset="utf-8"><title>Map failed</title></head>
-<body style="background:#1a1a2e;color:#eee;font-family:sans-serif;padding:40px;">
+<head>
+  <meta charset="utf-8">
+  <title>Map failed</title>
+  {% include "base.html" %}
+  <style>
+    body { padding: 40px; }
+    .error-message { color: #e94560; white-space: pre-wrap; }
+    .retry-button {
+      background: #e94560;
+      color: #eee;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <a href="/" class="home-link">← Home</a>
   <h2>Failed to build map for {{ name }}</h2>
-  <pre style="color:#e94560;white-space:pre-wrap;">{{ error }}</pre>
+  <pre class="error-message">{{ error }}</pre>
   <form action="{{ retry_url }}" method="post">
-    <button type="submit" style="background:#e94560;color:#eee;border:none;padding:10px 20px;border-radius:4px;font-size:1em;cursor:pointer;">Retry</button>
+    <button type="submit" class="retry-button">Retry</button>
   </form>
 </body>
 </html>

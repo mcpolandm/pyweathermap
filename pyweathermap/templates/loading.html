@@ -4,16 +4,12 @@
   <meta charset="utf-8">
   <title>Building map…</title>
   <meta http-equiv="refresh" content="4">
+  {% include "base.html" %}
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: #1a1a2e;
-      color: #eee;
-      font-family: 'Segoe UI', system-ui, sans-serif;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
     }
     .card { text-align: center; }
     .dot {
@@ -24,15 +20,6 @@
       margin-right: 8px;
       animation: pulse 1s infinite;
     }
-    .home-link {
-      color: #e94560;
-      text-decoration: none;
-    }
-    .home-link:hover {
-      text-decoration: underline;
-    }
-
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
   </style>
 </head>
 <body>

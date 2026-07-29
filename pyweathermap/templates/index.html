@@ -3,16 +3,12 @@
 <head>
   <meta charset="utf-8">
   <title>pyweathermap</title>
+  {% include "base.html" %}
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: #1a1a2e;
-      color: #eee;
-      font-family: 'Segoe UI', system-ui, sans-serif;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
     }
     .card {
       background: #16213e;
@@ -77,8 +73,6 @@
       font-size: 0.9rem;
     }
     .quick-links a:hover { color: #e94560; }
-
-
     h1 { font-size: 1.3rem; color: #e94560; margin-bottom: 20px; }
     select, button {
       font-size: 1rem;
@@ -133,7 +127,6 @@
     });
   });
 </script>
-
     </div>
     {% if groups %}
     <div class="quick-links">
