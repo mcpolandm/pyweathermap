@@ -40,7 +40,7 @@ def render_map_page(entry, name, retry_url, map_base, download_name, refresh_int
 
     hide_non_switches = request.args.get("hide_non_switches") == "1"
     hide_non_lldp = request.args.get("hide_non_lldp") == "1"
-    wm_view = m.filtered(hide_non_switches, hide_non_lldp)
+    wm_view = m.filtered(hide_non_switches, hide_non_lldp, False)
 
     n_areas = MapRenderer(wm_view).get_node_areas()
 
@@ -142,6 +142,22 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
     @app.route("/map/<name>/map.png")
     def map_png(name):
         _, entry = manager.get_or_create_map(app, app.config["REGISTRY"], name, traffic_interval, startup)
+        return map_png_response(entry)
+
+    @app.route("/map/all")
+    def show_all():
+        entry = manager.get_or_create_all(app, app.config["REGISTRY"], traffic_interval, startup)
+        return render_map_page(entry, name="all", retry_url=f"/map/all/retry", map_base=f"/map/all", download_name="all", refresh_interval=refresh_interval)
+
+    @app.route("/map/all/retry", methods=["POST"])
+    def retry_all():
+        manager.retry_map(app, app.config["REGISTRY"], traffic_interval, startup, name="all")
+        return redirect(f"/map/all")
+    
+    # Defines route to display a given switch/group's rendered image.
+    @app.route("/map/all/map.png")
+    def all_png():
+        entry = manager.get_or_create_all(app, app.config["REGISTRY"], traffic_interval, startup)
         return map_png_response(entry)
 
     # Defines unlisted /get route to build map from IP, retrieving community from LibreNMS
