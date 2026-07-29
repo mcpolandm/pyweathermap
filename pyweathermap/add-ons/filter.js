@@ -67,20 +67,21 @@
       text-align: left;
     }
   `;
-
+  // Removes leading zeros.
   function normalizeNumeric(str) {
     return str.replace(/^0+(?=\d)/, '');
   }
 
+  // Parses filtering information from a switch name.
   function parseSwitchName(name) {
     // USER EDITS HERE:
     // Include matching schemes for building name, rack number, and shelf number.
     // This allows the landing page to filter the dropdown accordingly.
     const upper = name.toUpperCase();
-    const building = upper.includes('') ? ''
+    const building = upper.includes(null) ? ''
                    : null;
-    const rackMatch = upper.match();
-    const shelfMatch = upper.match();
+    const rackMatch = upper.match(null);
+    const shelfMatch = upper.match(null);
     return {
       building,
       rack: rackMatch ? normalizeNumeric(rackMatch[1]) : null,
@@ -88,17 +89,20 @@
     };
   }
 
+  // Returns all entries that match the given filters.
   function matchesFilters(facets, filters) {
     return Object.entries(filters).every(([key, selected]) =>
       selected.length === 0 || (facets[key] !== null && selected.includes(facets[key]))
     );
   }
 
+  // Dedupes and sorts switches.
   function uniqueSorted(values) {
     return [...new Set(values.filter(v => v !== null))]
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
   }
 
+  // Creates the HTML elements for the filters
   function buildFilterSection(labelText) {
     const section = document.createElement('div');
     section.className = 'filter-section';
@@ -154,6 +158,7 @@
     });
   }
 
+  // Builds filters on load
   document.addEventListener('DOMContentLoaded', () => {
     const switchSelect = document.getElementById('switch-select');
     const card = document.querySelector('.card');
@@ -163,6 +168,7 @@
     styleEl.textContent = STYLE;
     document.head.appendChild(styleEl);
 
+    // Parse filters from switch names, then build filter sections.
     const options = Array.from(switchSelect.options);
     options.forEach(opt => {
       opt._facets = parseSwitchName(opt.dataset.name || opt.textContent);
@@ -186,6 +192,7 @@
     layout.appendChild(filterCard);
     layout.appendChild(card);
 
+    // Hides/displays correct switches from filters.
     function applySwitchFilters() {
       const filters = {
         building: [...buildingFacet.selected],
@@ -197,6 +204,7 @@
       });
     }
 
+    // Updates which Shelf filter options are displayed.
     function refreshShelf() {
       // Rack/shelf lists only make sense once a building narrows the set down;
       // with no building selected, don't dump every rack/shelf in the org.
@@ -213,6 +221,7 @@
       applySwitchFilters();
     }
 
+    // Updates which Rack filter options are displayed.
     function refreshRack() {
       if (buildingFacet.selected.size === 0) {
         rebuildFacetRows(rackFacet, [], refreshShelf);
@@ -226,6 +235,7 @@
       refreshShelf();
     }
 
+    // Displays initial filters (by building only)
     rebuildFacetRows(buildingFacet, uniqueSorted(options.map(o => o._facets.building)), refreshRack);
     refreshRack();
   });

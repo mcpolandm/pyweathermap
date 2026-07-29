@@ -177,7 +177,7 @@ def _composite_patch(canvas, box, draw_fn):
 # ──────────────────────────────────────────────────────────────────────────────
 
 class MapRenderer:
-    # Store WeatherMpa dn superscaling factor on init.
+    # Store WeatherMap and superscaling factor on init.
     def __init__(self, wmap: WeatherMap, show_labels: bool = True):
         self.wmap = wmap
         self._S = _SS

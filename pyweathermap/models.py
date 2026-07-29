@@ -44,7 +44,7 @@ class MapNode:
     icon_height: int = 22
     icon_type: str = "box"
     lldp: bool = True
-    infourl: Optional[str] = None # only set for undug switches (links to other WeatherMaps)
+    infourl: Optional[str] = None # only set for switches (links to other WeatherMaps/LibreNMS)
     ip: Optional[str] = None # only set for switches
     community: Optional[str] = None # only set for switches
 
@@ -74,9 +74,7 @@ class MapLink:
     out_color: Color = field(default_factory=lambda: Color(192, 192, 192))
 
 # Sets the default scale color values for the WeatherMap.
-# Ranges from white for <0.1%, and then purple to red from 0.1% to 100%.
 def _default_scale() -> MapScale:
-    # gray=no data, white=0-0.1%, then purple→blue→green→yellow→orange→red at 100%
     s = MapScale("DEFAULT")
     s.entries = [
         (0, 0, Color(192, 192, 192)),   # no traffic — gray
@@ -95,6 +93,8 @@ def _default_scale() -> MapScale:
 # nodes and links contain a list of all MapNodes and MapLinks in the Map.
 # Scale contains the default scale.
 # All other values are defaults and unchanged.
+# filtered() returns new WeatherMap object with nodes/links included
+# or excluded based on the filter conditions.
 @dataclass(slots=True)
 class WeatherMap:
     width: int = 2000
@@ -124,9 +124,6 @@ class WeatherMap:
 
         kept_nodes = {name for name, node in self.nodes.items() if keep(node)}
 
-        # Switches with no LLDP replies at all have nothing but placeholder neighbors;
-        # always show them so such a switch never renders with zero connections,
-        # regardless of which toggle(s) triggered the pruning above.
         for link in self.links.values():
             if link.node1 in self.no_lldp_switches or link.node2 in self.no_lldp_switches:
                 kept_nodes.add(link.node1)
@@ -142,8 +139,5 @@ class WeatherMap:
             if link.node1 in kept_nodes and link.node2 in kept_nodes
         }
         new_wm = replace(self, nodes=new_nodes, links=new_links)
-        # Filtered graphs are sparser, so Kamada-Kawai tends to push loosely-connected
-        # nodes out toward the extreme edges of the layout; a bigger margin keeps them
-        # (and their icons/labels) from spilling past the canvas border.
         layout.auto_layout(new_wm, margin=200)
         return new_wm

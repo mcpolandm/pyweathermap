@@ -80,20 +80,20 @@ def map_png_response(entry):
         data = manager.get_filtered_png(entry, hide_non_switches, hide_non_lldp)
     return Response(data, mimetype="image/png")
 
-# authorization helpers for /get
+# checks with secret key to authorize /get access
 def require_get_auth(device_ip, device_snmp_community=None):
     if not auth.enabled():
         abort(404) # Auth secret key not set
     if not auth.verify(device_ip, device_snmp_community, request.args.get("sig", "")):
         abort(403) # Auth signature incorrect
 
+# crafts query string for links
 def query_string(**parts):
     pairs = [f"{k}={v}" for k, v in parts.items() if v]
     return ("?" + "&".join(pairs)) if pairs else ""
 
 # Primary creation and operation function called by run_server.
 # Creates Flask app with lazily-built, per-group maps.
-# Defines /, /map/<name>, and /map/<name>/map.png routes.
 def create_app(registry, default_center=None, refresh_interval: int = 60, traffic_interval: int = 300, startup: int = 60) -> Flask:
     app = Flask(__name__)
     app.config["REGISTRY"] = registry
@@ -137,6 +137,7 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
         _, entry = manager.get_or_create_map(app, app.config["REGISTRY"], name, traffic_interval, startup)
         return map_png_response(entry)
 
+    # Defines unlisted /get route to build map from IP, retrieving community from LibreNMS
     @app.route("/get/<device_ip>")
     def show_ip_map_api(device_ip):
         require_get_auth(device_ip)
@@ -150,6 +151,7 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
         _, entry = manager.get_or_create_ip_map(app, app.config["REGISTRY"], device_ip, community, traffic_interval, startup)
         return render_map_page(entry, name=device_ip, retry_url=f"/get/{device_ip}/retry{query_string(sig=sig)}", map_base=f"/get/{device_ip}", download_name=device_ip, refresh_interval=refresh_interval, existing_url=existing_url, sig=sig,)
 
+    # Defines /get retry
     @app.route("/get/<device_ip>/retry", methods=["POST"])
     def retry_ip_map_api(device_ip):
         require_get_auth(device_ip)
@@ -161,6 +163,7 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
         manager.retry_map(app, app.config["REGISTRY"], traffic_interval, startup, ip=device_ip, community=community)
         return redirect(f"/get/{device_ip}{query_string(sig=request.args.get('sig'))}")
 
+    # Defines /get image display
     @app.route("/get/<device_ip>/map.png")
     def get_ip_map_png_api(device_ip):
         require_get_auth(device_ip)
@@ -171,7 +174,8 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
             abort(502)
         _, entry = manager.get_or_create_ip_map(app, app.config["REGISTRY"], device_ip, community, traffic_interval, startup)
         return map_png_response(entry)
-    
+
+    # Defines unlisted route to map from inputted IP and community
     @app.route("/get/<device_ip>/<device_snmp_community>")
     def show_ip_map(device_ip, device_snmp_community):
         require_get_auth(device_ip, device_snmp_community)
@@ -182,6 +186,7 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
         _, entry = manager.get_or_create_ip_map(app, app.config["REGISTRY"], device_ip, device_snmp_community, traffic_interval, startup)
         return render_map_page(entry, name=device_ip, retry_url=f"/get/{device_ip}/{device_snmp_community}/retry{query_string(sig=sig)}", map_base=f"/get/{device_ip}/{device_snmp_community}", download_name=device_ip, refresh_interval=refresh_interval, existing_url=existing_url, sig=sig)
 
+    # Defines get retry
     @app.route("/get/<device_ip>/<device_snmp_community>/retry", methods=["POST"])
     def retry_ip_map(device_ip, device_snmp_community):
         require_get_auth(device_ip, device_snmp_community)
@@ -192,7 +197,8 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
             ip=device_ip, community=device_snmp_community,
         )
         return redirect(f"/get/{device_ip}/{device_snmp_community}{query_string(sig=request.args.get('sig'))}")
-    
+
+    # Defines get image display 
     @app.route("/get/<device_ip>/<device_snmp_community>/map.png")
     def get_ip_map_png(device_ip, device_snmp_community):
         require_get_auth(device_ip, device_snmp_community)
@@ -202,7 +208,8 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
             app, app.config["REGISTRY"], device_ip, device_snmp_community, traffic_interval, startup
         )
         return map_png_response(entry)
-    
+
+    # Handles pop-ups for completed/failed WeatherMap builds
     @app.route("/notices")
     def notices():
         since = request.args.get("since", 0.0, type=float)

@@ -40,6 +40,8 @@ def auto_layout(wm: WeatherMap, margin: int=80):
     
     deconflict_hub_angles(wm)
 
+# Called by auto_layout to spread out nodes when their links are overlapping.
+# Widens the angle between links.
 def deconflict_hub_angles(wm: WeatherMap):
     for hub in wm.nodes.values():
         if hub.node_type != "switch":

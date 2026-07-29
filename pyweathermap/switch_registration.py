@@ -13,6 +13,7 @@ def is_valid_target(ip_or_host):
         pass
     return bool(re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9-]{1,63})*", ip_or_host))
 
+# Creates registry object from switch list file
 def load_switch_registry(path):
     # Get switch information from file
     switches = {}
@@ -35,10 +36,12 @@ def load_switch_registry(path):
 
     return switches
 
+# Returns list of switches in a given group
 def get_group_members(registry, group):
     unique_switches = dict.fromkeys(registry.values())
     return [switch for switch in unique_switches if switch.group == group]
 
+# Returns list of all groups, with a representative from each
 def get_named_groups(registry):
     unique_switches = dict.fromkeys(registry.values())
     groups = {}
@@ -47,10 +50,12 @@ def get_named_groups(registry):
     named_groups = [(group, min(members, key=lambda s: s.name.lower()).name) for group, members in groups.items() if len(members) > 1]
     return sorted(named_groups, key=lambda pair: pair[0].lower())
 
+# Returns all switch name and IP pairs in the registry
 def get_all_switches(registry):
     unique_switches = dict.fromkeys(registry.values())
     return sorted({(switch.name, switch.ip) for switch in unique_switches}, key=lambda pair: pair[0].lower())
 
+# Returns all center nodes for a group based on group or individual switch name.
 def get_center_nodes(registry, center_text=None):
     if center_text is None or center_text.lower() not in registry:
         default_env = os.environ.get("PYWEATHERMAP_DEFAULT_CENTER")

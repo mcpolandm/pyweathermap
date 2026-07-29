@@ -4,8 +4,8 @@ pyweathermap — Python network weathermap generator
 
 Usage:
   python main.py                     # render to image only
-  python main.py --serve             # render + web server
-  python main.py --serve --port 9000 # custom port
+  python main.py --server             # render + web server
+  python main.py --server --port 9000 # custom port
   python main.py --output out.png    # override output path
 """
 
@@ -35,6 +35,7 @@ def main():
     parser.add_argument("--server", "-s", action="store_true", help="Start the web server")
     args = parser.parse_args()
 
+    # Failure if no switch list file
     switches_path = os.environ.get("PYWEATHERMAP_SWITCHES")
     if not switches_path:
         raise RuntimeError(
@@ -54,22 +55,10 @@ def main():
         print(f"  Map: {wmap.width}x{wmap.height}  nodes={len(wmap.nodes)}  links={len(wmap.links)}")
 
         # Determine output path
-        out_path = args.output
-        # If path provided by user, save there
-        if out_path:
-            print(f"  Rendering image → {out_path}")
-            renderer = MapRenderer(wmap)
-            img = renderer.render()
-            img.save(out_path)
-            print(f"  Saved: {out_path}")
-        # If no path and not server, save to default path (inventory/WeatherMap title)
-        else:
-            out_path = "inventory/" + wmap.title + ".png"
-            print(f"  Rendering image → {out_path}")
-            renderer = MapRenderer(wmap)
-            img = renderer.render()
-            img.save(out_path)
-            print(f"  Saved: {out_path}")
+        out_path = args.output or "inventory/" + wmap.title + ".png"
+        print(f"  Rendering image → {out_path}")
+        MapRenderer(wmap).render().save(out_path)
+        print(f"  Saved: {out_path}")
 
 if __name__ == "__main__":
     main()

@@ -114,6 +114,7 @@ def get_or_create_map(app, registry, name, traffic_interval, startup):
             threading.Thread(target=build, args=(app, registry, group_id, switches, traffic_interval, f"/map/{switches[0].name.lower()}"), kwargs={"seconds": startup}, daemon=True).start()
     return group_id, entry
 
+# Returns the map entry for the ip address, called from the get route.
 def get_or_create_ip_map(app, registry, ip, community, traffic_interval, startup):
     group_id, switch = resolve_ip(registry, ip, community)
     with app.config["MAPS_LOCK"]:

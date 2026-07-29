@@ -8,7 +8,6 @@ from .models import (
     WeatherMap
 )
 
-
 # Raised by get_traffic when a switch's SNMP data can't be turned into usable
 # rows, so callers see what went wrong instead of a bare pandas KeyError.
 class SwitchDataError(Exception):
@@ -211,6 +210,7 @@ def get_traffic(ip, community, seconds=300, interfaces=None):
     df['In Diff'] = (df['In Diff'] * 8)//seconds
     df['Out Diff'] = (df['Out Diff'] * 8)//seconds
 
+    # Drop non-lldp rows with no traffic in LLDP maps
     if df.attrs.get("lldp_known", True):
         df = df[df["lldp"] | (df["In Diff"] != 0) | (df["Out Diff"] != 0)]
     return df

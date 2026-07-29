@@ -2,8 +2,9 @@ import hmac
 import hashlib
 import os
 
-"""Used to ensure the accessor of the /get route has the secret key.
-Needed to limit requests from unknown users to keep data safe."""
+# Used to ensure the accessor of the /get route has the secret key.
+# Needed to limit requests from unknown users to keep data safe.
+# Uses HMAC and SHA256 to encode with secret key, IP, and community.
 
 def _hmac(*parts):
     msg = b"\x00".join(p.encode() for p in parts)
