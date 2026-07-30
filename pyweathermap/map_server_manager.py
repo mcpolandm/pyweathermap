@@ -197,10 +197,10 @@ def traffic_update_loop(app, registry, group_id, switches, notice_url, interval=
                     link.in_bps = max(0, (in2 - in1)) * 8 // elapsed
                     link.out_bps = max(0 ,(out2 - out1)) * 8 // elapsed
                 # Render updated WeatherMap diagram and refresh update time.
-                entry["png"] = _render_png(wm)
+                entry["png"] = _render_png(wm, lldp_only=lldp_only)
                 # Keep the hide-non-LLDP PNG pre-rendered alongside the base one.
                 entry["updated"] = time.time()
-                entry["png_filtered"] = {(False, True): _render_png(wm, hide_non_lldp=True)}
+                entry["png_filtered"] = {(False, True): _render_png(wm, hide_non_lldp=True, lldp_only=lldp_only)}
                 entry["png_filtered_for"] = entry["updated"]
         gc.collect()
 
