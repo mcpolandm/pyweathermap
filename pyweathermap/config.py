@@ -68,7 +68,7 @@ def config_from_snmp(registry, switches, seconds=60, lldp_only=False):
         create_nodes_and_links(wm, df, switch, registry, switches, lldp_only=lldp_only)
 
     if lldp_only:
-        side = max(wm.width, int(180 * math.sqrt(len(wm.nodes))))
+        side = max(wm.width, int(350 * math.sqrt(len(wm.nodes))))
         wm.width = wm.height = side
 
 
