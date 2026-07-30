@@ -69,7 +69,7 @@ def render_map_page(entry, name, retry_url, map_base, download_name, refresh_int
     )
 
 # Helper for /map.png routes
-def map_png_response(entry):
+def map_png_response(entry, lldp_only=False):
     hide_non_switches = request.args.get("hide_non_switches") == "1"
     hide_non_lldp = request.args.get("hide_non_lldp") == "1"
     with entry["lock"]:
@@ -77,7 +77,7 @@ def map_png_response(entry):
             abort(404)
         data = entry["png"]
     if hide_non_switches or hide_non_lldp:
-        data = manager.get_filtered_png(entry, hide_non_switches, hide_non_lldp)
+        data = manager.get_filtered_png(entry, hide_non_switches, hide_non_lldp, lldp_only=lldp_only)
     return Response(data, mimetype="image/png")
 
 # checks with secret key to authorize /get access
@@ -158,7 +158,7 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
     @app.route("/map/all/map.png")
     def all_png():
         entry = manager.get_or_create_all(app, app.config["REGISTRY"], traffic_interval, startup)
-        return map_png_response(entry)
+        return map_png_response(entry, lldp_only=True)
 
     # Defines unlisted /get route to build map from IP, retrieving community from LibreNMS
     @app.route("/get/<device_ip>")

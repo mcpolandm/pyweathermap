@@ -20,6 +20,7 @@ is applied only at draw time. The final image is downscaled with LANCZOS
 to produce smooth sub-pixel edges.
 """
 
+from dataclasses import replace
 import math
 import io
 from datetime import datetime
@@ -178,10 +179,11 @@ def _composite_patch(canvas, box, draw_fn):
 
 class MapRenderer:
     # Store WeatherMap and superscaling factor on init.
-    def __init__(self, wmap: WeatherMap, show_labels: bool = True):
+    def __init__(self, wmap: WeatherMap, show_labels: bool = True, collapse_parallel: bool = False):
         self.wmap = wmap
         self._S = _SS
         self._show_labels = show_labels
+        self._collapse_parallel = collapse_parallel
 
 # ── Primary ──────────────────────────────────────────────────────────────
 
@@ -196,7 +198,12 @@ class MapRenderer:
 
         self._apply_scales()
         self._expand_box_nodes_for_labels()
-        self._parallel_offsets = self._compute_parallel_offsets()
+        if self._collapse_parallel:
+            self._draw_link_set = self._collapse_links()
+            self._parallel_offsets = {}
+        else:
+            self._draw_link_set = list(self.wmap.links.values())
+            self._parallel_offsets = self._compute_parallel_offsets()
 
     # ── Step 1: Background ────────────────────────────────────────────
         canvas = Image.new("RGBA", (sw, sh), bg_rgba)
@@ -305,6 +312,22 @@ class MapRenderer:
                 offsets[link.name] = magnitude if link.node1 == canonical_first else -magnitude
         return offsets
 
+    def _collapse_links(self):
+        groups = {}
+        for link in self.wmap.links.values():
+            groups.setdefault(frozenset((link.node1, link.node2)), []).append(link)
+
+        scale = self.wmap.scale
+        summaries = []
+        for links in groups.values():
+            if len(links) == 1:
+                summaries.append(links[0])
+                continue
+            in_pcts = [l.in_bps  / l.bandwidth * 100 for l in links if l.bandwidth > 0]
+            out_pcts = [l.out_bps  / l.bandwidth * 100 for l in links if l.bandwidth > 0]
+            summaries.append(replace(links[0], bandwidth=sum(l.bandwidth for l in links), in_bps=sum(l.in_bps for l in links), out_bps=sum(l.out_bps for l in links), in_color=scale.color_for_percentage(sum(in_pcts) / len(in_pcts) if in_pcts else 0.0), out_color=scale.color_for_percentage(sum(out_pcts) / len(out_pcts) if in_pcts else 0.0)))
+        return summaries
+
     # Iterates through nodes, expanding those that do not fit label text.
     # Expands width enough to fit label at _F_SMALL, minimum font size.
     def _expand_box_nodes_for_labels(self):
@@ -387,7 +410,7 @@ class MapRenderer:
     # Iterates through links, computes path and split with _link_geometry.
     # Draws two arrows starting at each node and meeting at split point along path.
     def _draw_links(self, draw: ImageDraw.ImageDraw, S: int):
-        for link in self.wmap.links.values():
+        for link in self._draw_link_set:
             geo = self._link_geometry(link)
             if not geo:
                 continue
@@ -503,7 +526,7 @@ class MapRenderer:
     # Places pill box and label for both in and out.
     def _draw_bw_labels_all(self, canvas: Image.Image, draw: ImageDraw.ImageDraw, S: int):
         placed_positions = []
-        for link in self.wmap.links.values():
+        for link in self._draw_link_set:
             if link.bandwidth <= 0:
                 continue
             geo = self._link_geometry(link)

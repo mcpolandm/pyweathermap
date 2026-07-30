@@ -29,19 +29,19 @@ def new_map_entry():
     }
 
 # Renders a WeatherMap (optionally filtered) to PNG bytes.
-def _render_png(wmap, hide_non_switches=False, hide_non_lldp=False):
+def _render_png(wmap, hide_non_switches=False, hide_non_lldp=False, lldp_only=False):
     view = wmap.filtered(hide_non_switches, hide_non_lldp) if (hide_non_switches or hide_non_lldp) else wmap
-    return MapRenderer(view, show_labels=False).render_to_bytes("PNG")
+    return MapRenderer(view, show_labels=False, collapse_parallel=lldp_only).render_to_bytes("PNG")
 
 # Gets filtered PNG for a ready map entry.
-def get_filtered_png(entry, hide_non_switches, hide_non_lldp):
+def get_filtered_png(entry, hide_non_switches, hide_non_lldp, lldp_only=False):
     key = (hide_non_switches, hide_non_lldp)
     with entry["lock"]:
         wmap, updated = entry["wmap"], entry["updated"]
         if entry["png_filtered_for"] == updated and key in entry["png_filtered"]:
             return entry["png_filtered"][key]
 
-    png = _render_png(wmap, hide_non_switches, hide_non_lldp)
+    png = _render_png(wmap, hide_non_switches, hide_non_lldp, lldp_only=lldp_only)
 
     with entry["lock"]:
         if entry["updated"] == updated:  # still current; don't clobber a newer render
@@ -71,10 +71,10 @@ def build(app, registry, group_id, switches, traffic_interval, notice_url, secon
     label = label or switches[0].name
     try:
         wmap = snmp_config.config_from_snmp(registry, switches, seconds, lldp_only=lldp_only)
-        png = _render_png(wmap)
+        png = _render_png(wmap, lldp_only=lldp_only)
         # Pre-rendered since it's important enough to always be ready on request,
         # rather than paying the render cost on the first visitor to ask for it.
-        png_hide_lldp = _render_png(wmap, hide_non_lldp=True)
+        png_hide_lldp = _render_png(wmap, hide_non_lldp=True, lldp_only=lldp_only)
         with entry["lock"]:
             entry["wmap"] = wmap
             entry["png"] = png
