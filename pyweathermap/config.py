@@ -1,3 +1,5 @@
+import math
+
 import pyweathermap.getting_traffic as datasource
 import pyweathermap.layout as layout
 import pyweathermap.librenms_integration as libre
@@ -64,6 +66,11 @@ def config_from_snmp(registry, switches, seconds=60, lldp_only=False):
         node = MapNode(name=switch.name, label=switch.name, node_type="switch", ip=switch.ip, community=switch.community, icon_type="rbox", icon_height=30, icon_width=60, infourl=infourl)
         wm.nodes[switch.name] = node
         create_nodes_and_links(wm, df, switch, registry, switches, lldp_only=lldp_only)
+
+    if lldp_only:
+        side = max(wm.width, int(180 * math.sqrt(len(wm.nodes))))
+        wm.width = wm.height = side
+
 
     # Call auto_layout to position MapNodes
     layout.auto_layout(wm)
