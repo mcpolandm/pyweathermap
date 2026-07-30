@@ -325,7 +325,7 @@ class MapRenderer:
                 continue
             in_pcts = [l.in_bps  / l.bandwidth * 100 for l in links if l.bandwidth > 0]
             out_pcts = [l.out_bps  / l.bandwidth * 100 for l in links if l.bandwidth > 0]
-            summaries.append(replace(links[0], bandwidth=sum(l.bandwidth for l in links), in_bps=sum(l.in_bps for l in links), out_bps=sum(l.out_bps for l in links), in_color=scale.color_for_percentage(sum(in_pcts) / len(in_pcts) if in_pcts else 0.0), out_color=scale.color_for_percentage(sum(out_pcts) / len(out_pcts) if in_pcts else 0.0)))
+            summaries.append(replace(links[0], bandwidth=sum(l.bandwidth for l in links), in_bps=sum(l.in_bps for l in links), out_bps=sum(l.out_bps for l in links), in_color=scale.color_for_percentage(max(in_pcts)), out_color=scale.color_for_percentage(max(out_pcts))))
         return summaries
 
     # Iterates through nodes, expanding those that do not fit label text.
@@ -348,7 +348,7 @@ class MapRenderer:
                 node.x = min(max(node.x, half_w + margin), self.wmap.width - half_w - margin)
                 node.y = min(max(node.y, half_h + margin), self.wmap.height - half_h - margin)
         if self._collapse_parallel:
-            self._resolve_node_overlaps(iterations=12, min_gap=40)
+            self._resolve_node_overlaps(iterations=16, min_gap=50)
         else:
             self._resolve_node_overlaps()
 
