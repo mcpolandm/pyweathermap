@@ -30,7 +30,7 @@ def new_map_entry():
 
 # Renders a WeatherMap (optionally filtered) to PNG bytes.
 def _render_png(wmap, hide_non_switches=False, hide_non_lldp=False):
-    view = wmap.filtered(hide_non_switches, hide_non_lldp, False) if (hide_non_switches or hide_non_lldp) else wmap
+    view = wmap.filtered(hide_non_switches, hide_non_lldp) if (hide_non_switches or hide_non_lldp) else wmap
     return MapRenderer(view, show_labels=False).render_to_bytes("PNG")
 
 # Gets filtered PNG for a ready map entry.
@@ -66,10 +66,11 @@ def existing_map_url(app, registry, ip):
 
 # Builds a fresh WeatherMap for this group and stores it in the map entry.
 # Runs in a background thread.
-def build(app, registry, group_id, switches, traffic_interval, notice_url, seconds=60, start_loop=True, evictable=False):
+def build(app, registry, group_id, switches, traffic_interval, notice_url, seconds=60, start_loop=True, evictable=False, lldp_only=False, label=None):
     entry = app.config["MAPS"][group_id]
+    label = label or switches[0].name
     try:
-        wmap = snmp_config.config_from_snmp(registry, switches, seconds)
+        wmap = snmp_config.config_from_snmp(registry, switches, seconds, lldp_only=lldp_only)
         png = _render_png(wmap)
         # Pre-rendered since it's important enough to always be ready on request,
         # rather than paying the render cost on the first visitor to ask for it.
@@ -85,58 +86,19 @@ def build(app, registry, group_id, switches, traffic_interval, notice_url, secon
         if start_loop:
             with app.config["NOTICES_LOCK"]:
                 app.config["NOTICES"].append({
-                    "name": switches[0].name,
+                    "name": label,
                     "url": notice_url,
                     "ts": time.time(),
                     "type": "ready",
                 })
-            threading.Thread(target=traffic_update_loop, args=(app, registry, group_id, switches, notice_url, traffic_interval), kwargs={"evictable": evictable}, daemon=True).start()
+            threading.Thread(target=traffic_update_loop, args=(app, registry, group_id, switches, notice_url, traffic_interval), kwargs={"evictable": evictable, "lldp_only": lldp_only, "label": label}, daemon=True).start()
     except Exception as exc:
         with entry["lock"]:
             entry["status"] = "error"
             entry["error"] = str(exc)
         with app.config["NOTICES_LOCK"]:
             app.config["NOTICES"].append({
-                "name": switches[0].name,
-                "url": notice_url,
-                "ts": time.time(),
-                "type": "error",
-            })
-
-def build_all(app, registry, traffic_interval, notice_url, seconds=60, start_loop=True, evictable=False):
-    entry = app.config["MAPS"]["all"]
-    try:
-        switches = [switch for switch in registration.unique_switches(registry)]
-        wmap = snmp_config.config_from_snmp(registry, switches, seconds)
-        wmap = wmap.filtered(True, True, True)
-        png = _render_png(wmap)
-        # Pre-rendered since it's important enough to always be ready on request,
-        # rather than paying the render cost on the first visitor to ask for it.
-        png_hide_lldp = _render_png(wmap, hide_non_lldp=True)
-        with entry["lock"]:
-            entry["wmap"] = wmap
-            entry["png"] = png
-            entry["updated"] = time.time()
-            entry["png_filtered"] = {(False, True): png_hide_lldp}
-            entry["png_filtered_for"] = entry["updated"]
-            entry["status"] = "ready"
-        gc.collect()
-        if start_loop:
-            with app.config["NOTICES_LOCK"]:
-                app.config["NOTICES"].append({
-                    "name": "all",
-                    "url": notice_url,
-                    "ts": time.time(),
-                    "type": "ready",
-                })
-            #threading.Thread(target=traffic_update_loop, args=(app, registry, group_id, switches, notice_url, traffic_interval), kwargs={"evictable": evictable}, daemon=True).start()
-    except Exception as exc:
-        with entry["lock"]:
-            entry["status"] = "error"
-            entry["error"] = str(exc)
-        with app.config["NOTICES_LOCK"]:
-            app.config["NOTICES"].append({
-                "name": "all",
+                "name": label,
                 "url": notice_url,
                 "ts": time.time(),
                 "type": "error",
@@ -171,7 +133,8 @@ def get_or_create_all(app, registry, traffic_interval, startup):
         if entry is None:
             entry = new_map_entry()
             app.config["MAPS"]["all"] = entry
-            threading.Thread(target=build_all, args=(app, registry, traffic_interval, f"/map/all"), kwargs={"seconds": startup, "evictable": True}, daemon=True).start()
+            switches = [switch for switch in registration.unique_switches(registry)]
+            threading.Thread(target=build, args=(app, registry, "all", switches, traffic_interval, "/map/all"), kwargs={"seconds": startup, "evictable": True, "lldp_only": True, "label": "all"}, daemon=True).start()
         entry["last_viewed"] = time.time()
     return entry
 
@@ -183,10 +146,16 @@ def retry_map(app, registry, traffic_interval, startup, name=None, ip=None, comm
         switches = [switch]
         notice_url = f"/get/{ip}/{community}"
         evictable = True
+        lldp_only, label = False, None
+    elif name == "all":
+        group_id = "all"
+        switches = [switch for switch in registration.unique_switches(registry)]
+        notice_url, evictable, lldp_only, label = "/map/all", True, True, "all"
     else:
         group_id, _, switches = resolve(registry, name)
         notice_url = f"/map/{switches[0].name.lower()}"
         evictable = False
+        lldp_only, label = False, None
 
     with app.config["MAPS_LOCK"]:
         entry = app.config["MAPS"].get(group_id)
@@ -194,13 +163,13 @@ def retry_map(app, registry, traffic_interval, startup, name=None, ip=None, comm
             return group_id
         entry["status"] = "loading"
         entry["error"] = None
-        threading.Thread(target=build, args=(app, registry, group_id, switches, traffic_interval, notice_url), kwargs={"seconds": startup, "evictable": evictable}, daemon=True).start()
+        threading.Thread(target=build, args=(app, registry, group_id, switches, traffic_interval, notice_url), kwargs={"seconds": startup, "evictable": evictable, "lldp_only": lldp_only, "label": label}, daemon=True).start()
     return group_id
 
 # Background process to update one map's rendered image every interval seconds
 # with recent traffic data. One of these loops runs per built map (started once,
 # right after that map's first successful build).
-def traffic_update_loop(app, registry, group_id, switches, notice_url, interval=300, evictable=False):
+def traffic_update_loop(app, registry, group_id, switches, notice_url, interval=300, evictable=False, lldp_only=False, label=None):
     cycle = 0
     window_start = time.time()
     while True:
@@ -246,4 +215,4 @@ def traffic_update_loop(app, registry, group_id, switches, notice_url, interval=
                             del app.config["MAPS"][group_id]
                     return
             window_start = time.time()
-            threading.Thread(target=build, args=(app, registry, group_id, switches, interval, notice_url), kwargs={"seconds": interval, "start_loop": False}, daemon=True).start()
+            threading.Thread(target=build, args=(app, registry, group_id, switches, interval, notice_url), kwargs={"seconds": interval, "start_loop": False, "lldp_only": lldp_only, "label": label}, daemon=True).start()

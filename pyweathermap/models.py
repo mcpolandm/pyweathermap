@@ -108,7 +108,7 @@ class WeatherMap:
     scale: MapScale = field(default_factory=_default_scale)
     no_lldp_switches: set = field(default_factory=set) # center switch names whose neighbor names are unknown
 
-    def filtered(self, hide_non_switches: bool, hide_non_lldp: bool = False, is_all_map: bool = False) -> "WeatherMap":
+    def filtered(self, hide_non_switches: bool, hide_non_lldp: bool = False) -> "WeatherMap":
         if not hide_non_switches and not hide_non_lldp:
             return self
 
@@ -125,7 +125,7 @@ class WeatherMap:
         kept_nodes = {name for name, node in self.nodes.items() if keep(node)}
 
         for link in self.links.values():
-            if (link.node1 in self.no_lldp_switches or link.node2 in self.no_lldp_switches) and not is_all_map:
+            if link.node1 in self.no_lldp_switches or link.node2 in self.no_lldp_switches:
                 kept_nodes.add(link.node1)
                 kept_nodes.add(link.node2)
 

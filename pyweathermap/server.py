@@ -40,7 +40,7 @@ def render_map_page(entry, name, retry_url, map_base, download_name, refresh_int
 
     hide_non_switches = request.args.get("hide_non_switches") == "1"
     hide_non_lldp = request.args.get("hide_non_lldp") == "1"
-    wm_view = m.filtered(hide_non_switches, hide_non_lldp, False)
+    wm_view = m.filtered(hide_non_switches, hide_non_lldp)
 
     n_areas = MapRenderer(wm_view).get_node_areas()
 
@@ -114,7 +114,7 @@ def create_app(registry, default_center=None, refresh_interval: int = 60, traffi
     @app.route("/")
     def root():
         switches = registration.get_all_switches(registry)
-        groups = registration.get_named_groups(registry)
+        groups = [("All Switches", "all")] + registration.get_named_groups(registry)
         return render_template("index.html", switches=switches, groups=groups)
     
     @app.route("/goto")

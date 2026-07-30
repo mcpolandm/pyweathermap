@@ -13,9 +13,9 @@ from .models import (
 class SwitchDataError(Exception):
     pass
 
-# Helper to call snmpbulkwalk
+# Helper to call snmpbulkwalk.
 def snmp_walk_lines(ip, community, oid):
-    return subprocess.run(["snmpbulkwalk", "-On", "-v2c", "-c", community, "--", ip, oid], capture_output=True, text=True).stdout.strip().split("\n")
+    return subprocess.run(["snmpbulkwalk", "-On", "-v2c", "-t", "10", "-r", "2", "-c", community, "--", ip, oid], capture_output=True, text=True).stdout.strip().split("\n")
 
 # IF-MIB table roots polled via snmpbulkwalk.
 _OID_IN = ".1.3.6.1.2.1.31.1.1.1.6"      # ifHCInOctets
@@ -110,7 +110,7 @@ def get_lldp_neighbors(ip, community, df):
 # Primary function called by config.py to collect initial data on the connections of a given switch.
 # Collects IF-MIB index and interfaces to match to remote hostnames, bandwidth, and in/out traffic.
 # Computes traffic by waiting for seconds between snmpget commands, then calculating difference.
-def get_traffic(ip, community, seconds=300, interfaces=None):
+def get_traffic(ip, community, seconds=300, interfaces=None, lldp_only=False):
     # Collect IF-MIB index and interfaces for future snmp commands
     regex_descr = r"\.1\.3\.6\.1\.2\.1\.2\.2\.1\.2\.([0-9]*) = STRING: \"?([A-Za-z0-9/\.:_-]*)\"?"
     temp = []
@@ -158,6 +158,10 @@ def get_traffic(ip, community, seconds=300, interfaces=None):
         output_remote = "\n".join(snmp_walk_lines(ip, community, ".1.0.8802.1.1.2.1.4.1.1.9"))
         if not output_remote or "at this OID" in output_remote or "No more variables left" in output_remote:
             # This if statement catches where there is no neighbor output, the OID is not active, or the OID is disallowed.
+            
+            if lldp_only:
+                return pd.DataFrame()
+            
             df["sysname"] = df["interface"]
             df["lldp"] = False
             df.attrs["lldp_known"] = False
@@ -172,7 +176,10 @@ def get_traffic(ip, community, seconds=300, interfaces=None):
                     f"Columns collected so far: {list(df.columns)}."
                 )
             df["lldp"] = df["sysname"].notna()
-            df["sysname"] = df["sysname"].fillna(df["interface"])
+            if lldp_only:
+                df = df[df["lldp"]]
+            else:
+                df["sysname"] = df["sysname"].fillna(df["interface"])
     
     bw_table = snmp_bulk_table(ip, community, _OID_SPEED)
     df['Bandwidth'] = df['index'].map(bw_table)
