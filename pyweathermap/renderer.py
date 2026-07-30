@@ -348,7 +348,7 @@ class MapRenderer:
                 node.x = min(max(node.x, half_w + margin), self.wmap.width - half_w - margin)
                 node.y = min(max(node.y, half_h + margin), self.wmap.height - half_h - margin)
         if self._collapse_parallel:
-            self._resolve_node_overlaps(iterations=12, min_gap=20)
+            self._resolve_node_overlaps(iterations=12, min_gap=40)
         else:
             self._resolve_node_overlaps()
 
