@@ -12,7 +12,7 @@ This project requires Python version 3.10. Full functionality is confirmed for v
 
 ```bash
 # Install dependencies
-pip3 install -r requirements.txt
+pip3 install -e .
 
 # Declare environment variables for your setup:
 # Default Center Node(s) for PNG:
@@ -30,16 +30,16 @@ export LIBRENMS_URL=https://librenms.link.org
 export LIBRENMS_API_KEY=apikeygoeshere
 
 # Render default nodes to a PNG
-python main.py
+pyweathermap
 
 # Render to a PNG centered on specific node named switch3
-python main.py --center switch3
+pyweathermap --center switch3
 
 # Render + start the web server at http://127.0.0.1:8888
-python main.py --server
+pyweathermap --server
 
 # Render to a specific name PNG
-python3 main.py --output inventory/image.png
+pyweathermap --output inventory/image.png
 ```
 
 ---
@@ -84,7 +84,7 @@ where:
 
  File header line:
  interface,sysname
- 
+
  Example line from FILE:
  eth0,device1
 

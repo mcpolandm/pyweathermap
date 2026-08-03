@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyweathermap"
+version = "0.1.0"
+description = "Python network weathermap tool"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.10"
+dependencies = [
+    "Pillow>=10.0.0", 
+    "Flask>=3.0.0", 
+    "NetworkX>=3.0", 
+    "pandas>=2.0", 
+    "requests>=2.31.0", 
+    "scipy>=1.10", 
+]
+
+[project.scripts]
+pyweathermap = "pyweathermap.main:main"
+
+[tool.setuptools.package-data]
+pyweathermap = ["templates/*.html"]
+
+[tool.setuptools.packages.find]
+include = ["pyweathermap*"]
