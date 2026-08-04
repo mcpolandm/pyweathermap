@@ -1,5 +1,5 @@
 import math
-
+import pandas as pd
 import pyweathermap.getting_traffic as datasource
 import pyweathermap.layout as layout
 import pyweathermap.librenms_integration as libre
@@ -46,9 +46,15 @@ def create_nodes_and_links(wm, df, switch, registry, switches, lldp_only=False):
 def config_from_snmp(registry, switches, seconds=60, lldp_only=False):
     # Helper function to call get_traffic with remote hostname file if listed in the switches file
     def get_traffic_for_switch(sw):
-        if sw.file != "NONE":
-            return datasource.get_traffic(sw.ip, sw.community, seconds, interfaces=sw.file, lldp_only=lldp_only)
-        return datasource.get_traffic(sw.ip, sw.community, seconds, lldp_only=lldp_only)
+        try:
+            if sw.file != "NONE":
+                return datasource.get_traffic(sw.ip, sw.community, seconds, interfaces=sw.file, lldp_only=lldp_only)
+            return datasource.get_traffic(sw.ip, sw.community, seconds, lldp_only=lldp_only)
+        except Exception as exc:
+            if not lldp_only:
+                raise
+            print(f"Dropping {sw.name} ({sw.ip}) from .all map: {exc}", flush=True)
+            return pd.DataFrame()
 
     # Thread execution of get_traffic for each switch to keep data as accurate as possible
     with ThreadPoolExecutor(max_workers=100) as pool:
